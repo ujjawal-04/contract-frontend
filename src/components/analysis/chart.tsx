@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-import { Label, Pie, PieChart, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Label, Pie, PieChart, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
@@ -116,7 +108,7 @@ export default function OverallScoreChart({ overallScore = 75 }: OverallScoreCha
                       <g>
                         <text 
                           x={cx} 
-                          y={cy - 5} 
+                          y={(cy || 0) - 5} 
                           textAnchor="middle" 
                           dominantBaseline="central"
                           className="text-2xl font-bold fill-gray-800"
@@ -124,9 +116,9 @@ export default function OverallScoreChart({ overallScore = 75 }: OverallScoreCha
                           {overallScore}%
                         </text>
                         <text 
-                          x={cx} 
-                          y={cy + 15} 
-                          textAnchor="middle" 
+                          x={cx}
+                          y={(cy || 0) + 15}
+                          textAnchor="middle"
                           dominantBaseline="central"
                           className="text-xs fill-gray-500"
                         >

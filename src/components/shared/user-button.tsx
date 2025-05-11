@@ -18,12 +18,6 @@ import { logout } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useModalStore } from "@/store/zustand";
 
-function googlesignIn(): Promise<void> {
-  return new Promise((resolve) => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-    resolve();
-  });
-}
 
 export function UserButton() {
   const router = useRouter();

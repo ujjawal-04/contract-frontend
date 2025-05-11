@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
+import { Send } from "lucide-react";
 
 interface ChatbotModalProps {
   open: boolean;
@@ -38,6 +39,16 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
 
   // Ref for auto-scrolling
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input field when modal opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
 
   // Scroll to bottom whenever chat updates
   useEffect(() => {
@@ -118,6 +129,7 @@ User: ${inputMessage}`,
               },
             ]);
           }
+          // @ts-nocheck
         } catch (e) {
           setChatHistory((prev) => [
             ...prev,
@@ -135,7 +147,8 @@ User: ${inputMessage}`,
           { type: "ai", message: "Error: Could not retrieve response.", recommendations: [] },
         ]);
       }
-    } catch (error: any) {
+      // @ts-nocheck
+    } catch (error:any) {
       console.error("Error calling Gemini API:", error);
       setChatHistory((prev) => [
         ...prev,
@@ -152,49 +165,40 @@ User: ${inputMessage}`,
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent
-  className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-[70vw] rounded-md border bg-white p-6 shadow-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
->
-        <div className="absolute right-4 top-4" style={{ display: "none" }}>
-          <button
+      <DialogContent 
+        className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-3xl max-h-[90vh] p-0 rounded-lg overflow-hidden flex flex-col"
+        style={{
+          width: "95vw", 
+          height: "90vh",
+          maxWidth: "850px"
+        }}
+      >
+        <DialogHeader className="p-3 sm:p-4 border-b flex items-center justify-between">
+          <DialogTitle className="text-base sm:text-lg font-medium">Contract AI Assistant</DialogTitle>
+          {/* <Button 
             onClick={onClose}
-            className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
-            aria-label="Close"
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8 rounded-full"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <DialogHeader className="p-0 pb-4 pt-2">
-          <DialogTitle>AI Chat</DialogTitle>
+            <X className="h-4 w-4" />
+          </Button> */}
         </DialogHeader>
 
         {/* Chat History */}
-        <div className="py-4 overflow-y-auto h-96 space-y-4 pr-2">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
           {chatHistory.map((item, index) => (
             <div
               key={index}
               className={`flex ${item.type === "user" ? "justify-end" : "justify-start"} w-full`}
             >
               <div
-                className={`rounded-lg p-3 text-sm max-w-3/4 whitespace-pre-wrap break-words ${
+                className={`rounded-lg p-2 sm:p-3 text-xs sm:text-sm whitespace-pre-wrap break-words ${
                   item.type === "user"
                     ? "bg-blue-500 text-white ml-auto rounded-tr-none"
                     : "bg-gray-100 text-gray-800 mr-auto rounded-tl-none"
                 }`}
-                style={{ maxWidth: "75%" }}
+                style={{ maxWidth: "85%" }}
               >
                 {item.message}
 
@@ -202,15 +206,15 @@ User: ${inputMessage}`,
                 {item.type === "ai" &&
                   item.recommendations &&
                   item.recommendations.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="text-sm font-medium mb-2">Follow-up suggestions:</div>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
+                      <div className="text-xs sm:text-sm font-medium mb-2">Follow-up suggestions:</div>
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {item.recommendations.map((question, idx) => (
                           <Button
                             key={idx}
                             variant="outline"
                             size="sm"
-                            className="bg-white hover:bg-gray-50 text-gray-800 border-gray-200 max-w-full truncate"
+                            className="bg-white hover:bg-gray-50 text-gray-800 border-gray-200 text-xs sm:text-sm py-1 h-auto max-w-full truncate"
                             onClick={() => handleSendMessage(question)}
                           >
                             {question}
@@ -225,37 +229,46 @@ User: ${inputMessage}`,
           {isThinking && (
             <div className="flex justify-start w-full">
               <div
-                className="rounded-lg p-3 text-sm bg-gray-100 text-gray-800 mr-auto rounded-tl-none animate-pulse"
-                style={{ maxWidth: "75%" }}
+                className="rounded-lg p-2 sm:p-3 text-xs sm:text-sm bg-gray-100 text-gray-800 mr-auto rounded-tl-none"
+                style={{ maxWidth: "85%" }}
               >
-                Thinking...
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-0"></div>
+                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-150"></div>
+                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-300"></div>
+                  <span className="ml-1 text-gray-500">Thinking...</span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* 👇 Auto-scroll target */}
+          {/* Auto-scroll target */}
           <div ref={bottomRef} />
         </div>
 
         {/* Input */}
-        <div className="flex items-center space-x-2 mt-4 w-full overflow-hidden">
-          <input
-            type="text"
-            className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Ask your question..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            disabled={isThinking}
-          />
-          <Button
-            onClick={() => handleSendMessage()}
-            size="sm"
-            disabled={isThinking}
-            className="rounded-full bg-blue-500 hover:bg-blue-600"
-          >
-            Send
-          </Button>
+        <div className="p-3 sm:p-4 border-t">
+          <div className="flex items-center gap-2 w-full">
+            <input
+              ref={inputRef}
+              type="text"
+              className="flex-1 h-9 sm:h-10 rounded-full border border-gray-300 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Ask your question..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              disabled={isThinking}
+            />
+            <Button
+              onClick={() => handleSendMessage()}
+              size="sm"
+              disabled={isThinking}
+              className="rounded-full h-9 sm:h-10 px-3 sm:px-4 bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <Send className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Send</span>
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

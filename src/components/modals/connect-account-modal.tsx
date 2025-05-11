@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 function googleSignIn(): Promise<void> {
   return new Promise((resolve) => {
@@ -26,6 +27,7 @@ function googleSignIn(): Promise<void> {
 }
 
 export function ConnectAccountModel() {
+  const router = useRouter();
   const [isAgreed, setIsAgreed] = useState(false);
   const modalKey = "connectAccountModal";
   const { isOpen, closeModal } = useModalStore();
@@ -50,7 +52,12 @@ export function ConnectAccountModel() {
 
   const buttonVariants = {
     hover: { scale: 1.03 },
-    tap: { scale: 0.98 }
+    tap: { scale: 0.98 },
+  };
+
+  const navigateAndClose = (path: string) => {
+    closeModal(modalKey);
+    router.push(path);
   };
 
   return (
@@ -76,11 +83,7 @@ export function ConnectAccountModel() {
               </ul>
             </div>
 
-            <motion.div
-              whileHover="hover"
-              whileTap="tap"
-              variants={buttonVariants}
-            >
+            <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
               <Button
                 onClick={handleGoogleSignIn}
                 disabled={!isAgreed || mutation.isPending}
@@ -106,7 +109,22 @@ export function ConnectAccountModel() {
                 className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
               />
               <Label htmlFor="terms" className="text-sm text-slate-600 cursor-pointer">
-                I agree to the <span className="text-blue-600 hover:underline">terms and conditions</span> and <span className="text-blue-600 hover:underline">privacy policy</span>.
+                I agree to the{" "}
+                <button
+                  type="button"
+                  onClick={() => navigateAndClose("/terms-and-conditions")}
+                  className="text-blue-600 hover:underline underline-offset-2"
+                >
+                  terms and conditions
+                </button>{" "}
+                and{" "}
+                <button
+                  type="button"
+                  onClick={() => navigateAndClose("/privacy-policy")}
+                  className="text-blue-600 hover:underline underline-offset-2"
+                >
+                  privacy policy
+                </button>.
               </Label>
             </div>
           </div>

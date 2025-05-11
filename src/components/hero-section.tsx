@@ -10,12 +10,14 @@ import {
   CircleDollarSign,
   ShieldCheck,
   Clock,
+  X,
 } from "lucide-react"
 import Link from "next/link"
+import { useState, useRef, useEffect, MouseEvent, KeyboardEvent } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { PricingSection } from "./pricing-section"
 
 // Features array with title, description and icon name
@@ -52,7 +54,107 @@ const features = [
   },
 ]
 
+// Video modal props interface
+interface VideoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  videoSrc: string;
+}
+
+// Video modal component
+const VideoModal = ({ isOpen, onClose, videoSrc }: VideoModalProps) => {
+  const modalRef = useRef<HTMLDivElement>(null)
+  
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | any) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose()
+      }
+    }
+    
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside as any)
+      // Prevent scrolling when modal is open
+      document.body.style.overflow = "hidden"
+    }
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside as any)
+      document.body.style.overflow = "auto"
+    }
+  }, [isOpen, onClose])
+  
+  // Handle escape key press
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent | any) => {
+      if (event.key === "Escape") {
+        onClose()
+      }
+    }
+    
+    if (isOpen) {
+      window.addEventListener("keydown", handleEscKey as any)
+    }
+    
+    return () => {
+      window.removeEventListener("keydown", handleEscKey as any)
+    }
+  }, [isOpen, onClose])
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            className="relative w-full max-w-4xl"
+            ref={modalRef}
+          >
+            <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl">
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-full bg-black bg-opacity-40 text-white hover:bg-opacity-60 transition-all"
+                  aria-label="Close video"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+              
+              <div className="aspect-video w-full bg-black">
+                <iframe
+                  src={videoSrc}
+                  title="Demo Video"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+              
+              <div className="p-4 md:p-6 bg-gradient-to-b from-blue-50 to-white">
+                <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">How ContractAI works</h3>
+                <p className="text-slate-600 text-sm md:text-base">
+                  Watch this quick demo to see how our AI-powered contract analysis tools can revolutionize your workflow.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export function HeroSection() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState<boolean>(false)
+  
+  // Sample video source - replace with your actual video URL
+  const demoVideoSrc: string = "https://www.youtube.com/embed/t54NhLD1QPQ" // Replace with your actual video URL
+  
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -92,6 +194,13 @@ export function HeroSection() {
 
   return (
     <div className="flex flex-col w-full overflow-hidden">
+      {/* Video Modal */}
+      <VideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+        videoSrc={demoVideoSrc} 
+      />
+      
       {/* Hero Section with Animated Grid Background */}
       <section className="w-full min-h-screen flex items-center justify-center py-12 md:py-16 lg:py-20 relative">
         {/* Added grid background here */}
@@ -135,7 +244,7 @@ export function HeroSection() {
                 href={"/dashboard"}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "px-7 text-base py-5 mb-6 rounded-full border border-blue-200 flex items-center backdrop-blur-sm bg-blue-400/40 text-blue-700",
+                  "px-4 md:px-7 text-sm md:text-base py-3 md:py-5 mb-6 rounded-full border border-blue-200 flex items-center backdrop-blur-sm bg-blue-400/40 text-blue-700",
                 )}
               >
                 <motion.span
@@ -143,21 +252,21 @@ export function HeroSection() {
                   animate={{ rotate: [0, 15, -15, 0] }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatDelay: 3 }}
                 >
-                  <Sparkles className="size-4.5" />
+                  <Sparkles className="size-4" />
                 </motion.span>
-                Introducing simple metrics for your contracts
+                <span className="text-xs md:text-base">Introducing simple metrics for your contracts</span>
               </Link>
             </motion.div>
           </motion.div>
 
           <motion.div
-            className="text-center mb-12 w-full"
+            className="text-center mb-8 md:mb-12 w-full"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
             <motion.h1
-              className="text-4xl font-bold tracking-tight sm:text-5xl xl:text-6xl/none text-slate-800 mb-4"
+              className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-slate-800 mb-4 px-2"
               variants={itemVariants}
             >
               <motion.span
@@ -180,19 +289,20 @@ export function HeroSection() {
                 Revolutionize
               </motion.span>{" "}
               your contract
-              <br />
+              <br className="hidden sm:block" />
+              <span className="sm:hidden"> </span>
               analysis powered by AI
             </motion.h1>
 
-            <motion.p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto" variants={itemVariants}>
+            <motion.p className="text-base md:text-lg text-slate-600 mb-6 md:mb-8 max-w-2xl mx-auto px-4" variants={itemVariants}>
               Harness the power of AI to analyze, understand, and optimize your contracts in minutes, not hours
             </motion.p>
 
-            <motion.div className="flex flex-col sm:flex-row gap-4 justify-center mb-16" variants={itemVariants}>
-              <motion.div whileHover="hover" variants={animButtonVariants} whileTap={{ scale: 0.95 }}>
-                <Link href={"/dashboard"}>
+            <motion.div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 md:mb-16 px-4" variants={itemVariants}>
+              <motion.div whileHover="hover" variants={animButtonVariants} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
+                <Link href={"/dashboard"} className="block w-full">
                   <Button
-                    className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group"
+                    className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group w-full"
                     size={"lg"}
                   >
                     <motion.span className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -208,11 +318,12 @@ export function HeroSection() {
                 </Link>
               </motion.div>
 
-              <motion.div whileHover="hover" variants={animButtonVariants} whileTap={{ scale: 0.95 }}>
+              <motion.div whileHover="hover" variants={animButtonVariants} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                 <Button
-                  className="inline-flex items-center justify-center border-blue-200 relative overflow-hidden group"
+                  className="inline-flex items-center justify-center border-blue-200 relative overflow-hidden group w-full"
                   size={"lg"}
                   variant={"outline"}
+                  onClick={() => setIsVideoModalOpen(true)}
                 >
                   <motion.span className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <span className="relative z-10">Watch Demo</span>
@@ -230,7 +341,7 @@ export function HeroSection() {
 
           {/* Dashboard Preview Image with enhanced animation */}
           <motion.div
-            className="w-full max-w-5xl mx-auto rounded-lg overflow-hidden relative"
+            className="w-full max-w-5xl mx-auto rounded-lg overflow-hidden relative px-4"
             initial={{ opacity: 0, y: 60 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -264,7 +375,7 @@ export function HeroSection() {
 
               {/* Floating elements for visual interest */}
               <motion.div
-                className="absolute -top-4 -right-4 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full w-16 h-16 flex items-center justify-center text-white"
+                className="absolute -top-4 -right-4 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full w-12 h-12 md:w-16 md:h-16 flex items-center justify-center text-white"
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{
@@ -283,7 +394,7 @@ export function HeroSection() {
                     ease: "linear",
                   }}
                 >
-                  <Sparkles className="size-6" />
+                  <Sparkles className="size-5 md:size-6" />
                 </motion.div>
               </motion.div>
             </motion.div>
@@ -292,7 +403,7 @@ export function HeroSection() {
       </section>
 
       {/* Features Section - grid background removed since now it's in the header */}
-      <section className="w-full py-16  relative">
+      <section className="w-full py-12 md:py-16 relative">
         <div className="container px-4 md:px-6 max-w-6xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0 }}
@@ -302,7 +413,7 @@ export function HeroSection() {
             className="text-center"
           >
             <motion.h2
-              className="text-3xl font-bold text-center mb-12 relative"
+              className="text-2xl md:text-3xl font-bold text-center mb-8 md:mb-12 relative"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -312,7 +423,7 @@ export function HeroSection() {
             </motion.h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 w-full">
             {features.map((feature, index) => {
               const IconComponent = feature.icon
               let iconColor
@@ -401,7 +512,7 @@ export function HeroSection() {
 
                     <CardHeader className="text-center pb-2">
                       <motion.div
-                        className={`mx-auto flex items-center justify-center h-14 w-14 rounded-full ${bgColor} mb-4 relative`}
+                        className={`mx-auto flex items-center justify-center h-12 w-12 md:h-14 md:w-14 rounded-full ${bgColor} mb-4 relative`}
                         whileHover={{
                           scale: 1.1,
                           rotate: [0, 5, -5, 0],
@@ -418,13 +529,13 @@ export function HeroSection() {
                             repeatType: "reverse",
                           }}
                         >
-                          <IconComponent className={`h-7 w-7 ${iconColor}`} />
+                          <IconComponent className={`h-6 w-6 md:h-7 md:w-7 ${iconColor}`} />
                         </motion.div>
                       </motion.div>
-                      <CardTitle className="text-lg font-semibold">{feature.title}</CardTitle>
+                      <CardTitle className="text-base md:text-lg font-semibold">{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-slate-500 text-center text-sm">{feature.description}</p>
+                      <p className="text-slate-500 text-center text-xs md:text-sm">{feature.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -435,7 +546,7 @@ export function HeroSection() {
       </section>
 
        {/* Analysis Results Section with enhanced animations */}
-       <section className="w-full py-16 bg-gradient-to-b from-white to-blue-50 relative overflow-hidden">
+       <section className="w-full py-12 md:py-16 bg-gradient-to-b from-white to-blue-50 relative overflow-hidden">
         {/* Animated particles background */}
         <div className="absolute inset-0 z-0">
           {[...Array(20)].map((_, i) => (
@@ -459,8 +570,8 @@ export function HeroSection() {
                 ease: "linear",
               }}
               style={{
-                width: Math.random() * 100 + 50 + "px",
-                height: Math.random() * 100 + 50 + "px",
+                width: Math.random() * 50 + 30 + "px",
+                height: Math.random() * 50 + 30 + "px",
               }}
             />
           ))}
@@ -481,13 +592,13 @@ export function HeroSection() {
               transition={{ duration: 0.6 }}
               className="inline-block mb-2"
             >
-              <div className="px-4 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+              <div className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs md:text-sm font-medium">
                 Powerful Insights
               </div>
             </motion.div>
 
             <motion.h2
-              className="text-3xl font-bold text-center mb-8 relative inline-block"
+              className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 relative inline-block"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -540,7 +651,7 @@ export function HeroSection() {
                   }}
                 />
 
-                <div className="p-4">
+                <div className="p-2 md:p-4">
                   <motion.img
                     src="/2.png"
                     alt="Contract analysis dashboard"
@@ -554,7 +665,7 @@ export function HeroSection() {
 
                 {/* Floating elements for visual interest */}
                 <motion.div
-                  className="absolute -bottom-4 -left-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full w-16 h-16 flex items-center justify-center text-white"
+                  className="absolute -bottom-4 -left-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full w-12 h-12 md:w-16 md:h-16 flex items-center justify-center text-white"
                   initial={{ scale: 0, rotate: 20 }}
                   whileInView={{ scale: 1, rotate: 0 }}
                   viewport={{ once: true }}
@@ -574,7 +685,7 @@ export function HeroSection() {
                       ease: "linear",
                     }}
                   >
-                    <Brain className="size-6" />
+                    <Brain className="size-5 md:size-6" />
                   </motion.div>
                 </motion.div>
               </motion.div>

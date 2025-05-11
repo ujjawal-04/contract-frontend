@@ -6,24 +6,39 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { 
   ArrowLeft, 
-  ArrowRight, 
   Brain, 
   AlertTriangle, 
   UsersRound, 
   CircleDollarSign, 
   ShieldCheck, 
   Clock,
-  Settings,
   CheckCircle2,
   BarChart2,
   FileText,
   Zap,
   Scale,
-  Glasses
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSubscription } from "@/hooks/use-subscription"
+import { api } from "@/lib/api"
+import stripePromise from "@/lib/stripe"
 
 export default function Features() {
+  // Use the subscription hook to get the current status
+  const {
+    subscriptionStatus,
+    isUserLoading,
+    isSubscriptionLoading,
+    isUserError,
+    isSubscriptionError,
+  } = useSubscription();
+
+  // Determine if the user has premium status
+  const isPremium = subscriptionStatus?.status === "active";
+  
+  // Combined loading state
+  const isLoading = isUserLoading || isSubscriptionLoading;
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -109,63 +124,75 @@ export default function Features() {
       title: "Contract Analysis Dashboard",
       description: "Get a comprehensive overview of your contract portfolio with key metrics and insights at a glance.",
       icon: BarChart2,
-      image: "/feature-dashboard.jpg",
+      image: "/1.png",
     },
     {
       title: "Risk Assessment Engine",
       description: "Proprietary AI algorithms identify and categorize risks by severity, with specific recommendations for mitigation.",
       icon: AlertTriangle,
-      image: "/feature-risk.jpg",
+      image: "/3.png",
     },
     {
       title: "Legal Compliance Checker",
       description: "Verify compliance with relevant laws and regulations across multiple jurisdictions and industry standards.",
       icon: Scale,
-      image: "/feature-compliance.jpg",
+      image: "/4.png",
     },
     {
       title: "Key Clause Extraction",
       description: "Automatically identify and extract critical clauses and terms for quick review and comparison.",
       icon: FileText,
-      image: "/feature-clauses.jpg",
+      image: "/5.png",
     },
     {
       title: "Negotiation Recommendations",
       description: "Receive AI-powered suggestions for improving contract terms and strengthening your negotiating position.",
       icon: Zap,
-      image: "/feature-negotiation.jpg",
-    },
-    {
-      title: "Contract Comparison",
-      description: "Compare multiple versions of a contract to track changes and evaluate proposed modifications.",
-      icon: Glasses,
-      image: "/feature-comparison.jpg",
+      image: "/6.png",
     },
   ]
 
-  // Feature comparisons for different plans
-  const planFeatures = {
-    categories: ["Contract Analysis", "Risk Assessment", "Compliance", "Collaboration", "Support"],
-    plans: [
-      {
-        name: "Free",
-        features: ["Basic analysis", "Limited risk detection", "Standard compliance", "Single user", "Email support"],
-      },
-      {
-        name: "Pro",
-        features: ["Advanced analysis", "Full risk assessment", "Enhanced compliance", "Up to 5 users", "Priority support"],
-      },
-      {
-        name: "Enterprise",
-        features: ["Custom analysis", "Custom risk modeling", "Custom compliance rules", "Unlimited users", "Dedicated support"],
-      },
-    ],
-  }
+  const basicFeatures = [
+    "Basic contract analysis",
+    "2 projects",
+    "3 potential risks identified",
+    "3 potential opportunities identified",
+    "Brief contract summary",
+    "Standard support",
+    "Email support"
+  ];
+
+  const premiumFeatures = [
+    "Advanced contract analysis",
+    "Unlimited projects",
+    "Chat with your contract",
+    "10+ opportunities with impact levels",
+    "Comprehensive contract summary",
+    "Improvement recommendations",
+    "Key clauses identification",
+    "Legal compliance assessment",
+    "Negotiation points",
+    "Priority support"
+  ];
+
+  // Handle upgrade - redirect to checkout
+  const handleUpgrade = async() => {
+    try {
+      const response = await api.get("/payments/create-checkout-session");
+      const stripe = await stripePromise;
+      await stripe?.redirectToCheckout({
+        sessionId: response.data.sessionId,
+      });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      alert("Failed to initiate checkout. Please try again.");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header Section with Animated Grid Background */}
-      <section className="w-full py-12 md:py-16 relative">
+      <section className="w-full py-12 md:py-16 relative overflow-hidden">
         {/* Grid background */}
         <motion.div
           className="absolute inset-0 z-0 opacity-10"
@@ -175,6 +202,35 @@ export default function Features() {
             backgroundImage:
               "linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)",
             backgroundSize: "30px 30px",
+          }}
+        />
+
+        {/* Floating elements for visual interest */}
+        <motion.div 
+          className="absolute hidden md:block h-16 w-16 rounded-full bg-blue-500 opacity-10 top-1/4 left-1/4"
+          animate={{ 
+            y: [0, 20, 0],
+            scale: [1, 1.1, 1],
+            rotate: [0, 10, 0]
+          }}
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            repeatType: "reverse"
+          }}
+        />
+        
+        <motion.div 
+          className="absolute hidden md:block h-24 w-24 rounded-full bg-indigo-500 opacity-10 bottom-1/4 right-1/4"
+          animate={{ 
+            y: [0, -30, 0],
+            scale: [1, 1.2, 1],
+            rotate: [0, -15, 0]
+          }}
+          transition={{
+            duration: 7,
+            repeat: Infinity,
+            repeatType: "reverse"
           }}
         />
 
@@ -230,7 +286,7 @@ export default function Features() {
       {/* Main Features Section */}
       <section className="w-full py-12 bg-gradient-to-b from-white to-blue-50">
         <div className="container px-4 md:px-6 max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {mainFeatures.map((feature, index) => (
               <motion.div
                 key={index}
@@ -327,7 +383,7 @@ export default function Features() {
           >
             <h2 className="text-3xl font-bold text-slate-800 mb-4">Detailed Features</h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Explore the powerful capabilities that make ContractAI the leading solution for contract analysis
+              Explore the powerful capabilities that make Lexalyze the leading solution for contract analysis
             </p>
           </motion.div>
 
@@ -335,7 +391,7 @@ export default function Features() {
             {detailedFeatures.map((feature, index) => (
               <motion.div
                 key={index}
-                className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
+                className="grid grid-cols-1 md:grid-cols-2 gap-y-8 md:gap-12 items-center"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true, margin: "-100px" }}
@@ -405,7 +461,7 @@ export default function Features() {
                 >
                   <motion.div className="relative">
                     <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 opacity-0 z-10"
+                      className="absolute inset-0 shadow-2xl border border-gray-500 opacity-0 z-10"
                       animate={{ opacity: [0, 0.5, 0] }}
                       transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
                     />
@@ -414,7 +470,7 @@ export default function Features() {
                       alt={feature.title}
                       className="w-full h-auto rounded-xl"
                       onError={(e) => {
-                        e.currentTarget.src = `https://via.placeholder.com/600x400?text=${feature.title.replace(" ", "+")}`;
+                        e.currentTarget.src = `https://placehold.co/600x400?text=${feature.title.replace(" ", "+")}`;
                       }}
                     />
                   </motion.div>
@@ -425,111 +481,169 @@ export default function Features() {
         </div>
       </section>
 
-      {/* Feature Comparison Section */}
+      {/* Plan Comparison Section (Styled like Pricing) */}
       <section className="w-full py-16 bg-gradient-to-b from-white to-blue-50">
         <div className="container px-4 md:px-6 max-w-6xl mx-auto">
           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
             className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl font-bold text-slate-800 mb-4">Features by Plan</h2>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Compare our plans to find the perfect fit for your business
-            </p>
+            <h2 className="text-3xl font-bold mb-4">Choose your plan</h2>
+            <p className="text-slate-600 max-w-2xl mx-auto">Select the perfect plan for your needs, upgrade anytime to unlock premium features</p>
+            
+            {/* Subscription status indicator */}
+            {isUserError || isSubscriptionError ? (
+              <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Failed to load subscription status
+              </div>
+            ) : (
+              <div className="mt-4 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin h-4 w-4 mr-2 border-b-2 border-gray-500 rounded-full"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4 text-blue-500 mr-2" />
+                    <span className="mr-2">Status:</span>
+                    <span className={isPremium ? "text-green-600 font-semibold" : "text-blue-600"}>
+                      {isPremium ? "Premium" : "Basic"}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </motion.div>
-
-          <motion.div
-            className="bg-white rounded-xl shadow-lg overflow-hidden"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-blue-50">
-                    <th className="py-4 px-6 text-left text-slate-700 font-medium">Features</th>
-                    {planFeatures.plans.map((plan, index) => (
-                      <th key={index} className="py-4 px-6 text-center">
-                        <span className="text-blue-700 font-bold text-lg block mb-1">{plan.name}</span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planFeatures.categories.map((category, catIndex) => (
-                    <tr key={catIndex} className={catIndex % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="py-4 px-6 font-medium text-slate-700">{category}</td>
-                      {planFeatures.plans.map((plan, planIndex) => (
-                        <td key={planIndex} className="py-4 px-6 text-center text-slate-600">
-                          {plan.features[catIndex]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="text-center mt-10"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <Link href="/pricing" className="inline-block">
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group px-6 py-3"
-                size="lg"
-              >
-                <motion.span className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative z-10">View Pricing Plans</span>
-                <motion.span
-                  className="relative z-10 ml-2"
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, repeatDelay: 2 }}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </motion.span>
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="w-full py-16 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="container px-4 md:px-6 max-w-6xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl font-bold mb-4">Ready to transform your contract workflow?</h2>
-            <p className="text-lg text-blue-100 mb-8 max-w-3xl mx-auto">
-              Join thousands of businesses using ContractAI to analyze contracts faster and more accurately than ever before.
-            </p>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Basic Plan */}
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
             >
-              <Link href="/dashboard">
-                <Button
-                  className="bg-white text-blue-700 hover:bg-blue-50 font-medium px-8 py-6 text-lg rounded-md"
-                  size="lg"
-                >
-                  Start Free Trial
-                </Button>
-              </Link>
+              <Card className={`h-full border ${!isPremium ? "border-green-200 bg-green-50 shadow-md" : "border-gray-200 bg-white shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
+                {!isPremium && !isLoading && (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>CURRENT PLAN</span>
+                  </div>
+                )}
+                
+                <CardHeader className="pt-8 pb-2">
+                  <CardTitle className="text-xl font-bold mb-1">Basic</CardTitle>
+                  <p className="text-sm text-slate-600">Perfect for getting started</p>
+                </CardHeader>
+                
+                <CardContent className="pb-8">
+                  <div className="flex items-baseline mb-6">
+                    <span className="text-3xl font-bold">$0</span>
+                    <span className="text-slate-500 ml-1">/Free</span>
+                  </div>
+                  
+                  <ul className="space-y-4 mb-8">
+                    {basicFeatures.map((feature, index) => (
+                      <li className="flex items-center" key={index}>
+                        <CheckCircle2 className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
+                        <span className="text-sm text-slate-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {isLoading ? (
+                    <div className="w-full py-2 flex justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
+                    <Button 
+                      className={`w-full ${!isPremium 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "border-blue-200 text-blue-600 hover:bg-blue-50"}`} 
+                      onClick={() => window.location.href = "/dashboard"}
+                      variant={!isPremium ? "default" : "outline"}
+                      disabled={!isPremium}
+                    >
+                      {!isPremium ? "Current Plan" : "Downgrade"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
             </motion.div>
-          </motion.div>
+            
+            {/* Premium Plan */}
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            >
+              <Card className={`h-full border ${isPremium ? "border-green-200 bg-green-50 shadow-md" : "border-blue-200 bg-blue-50 shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
+                {!isLoading && (isPremium ? (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>CURRENT PLAN</span>
+                  </div>
+                ) : (
+                  <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-bl">
+                    RECOMMENDED
+                  </div>
+                ))}
+                
+                <CardHeader className="pt-8 pb-2">
+                  <CardTitle className="text-xl font-bold mb-1 flex items-center">
+                    Premium
+                    <span className="ml-2 text-yellow-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
+                        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
+                      </svg>
+                    </span>
+                  </CardTitle>
+                  <p className="text-sm text-slate-600">For comprehensive contract analysis</p>
+                </CardHeader>
+                
+                <CardContent className="pb-8">
+                  <div className="flex items-baseline mb-6">
+                    <span className="text-3xl font-bold">$20</span>
+                    <span className="text-slate-500 ml-1">/lifetime</span>
+                  </div>
+                  
+                  <ul className="space-y-4 mb-8">
+                    {premiumFeatures.map((feature, index) => (
+                      <li className="flex items-center" key={index}>
+                        <CheckCircle2 className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
+                        <span className="text-sm text-slate-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {isLoading ? (
+                    <div className="w-full py-2 flex justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
+                    <Button 
+                      className={`w-full ${isPremium 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "bg-blue-600 hover:bg-blue-700 text-white"}`} 
+                      onClick={isPremium ? () => window.location.href = "/dashboard" : handleUpgrade}
+                      variant="default"
+                      disabled={isPremium}
+                    >
+                      {isPremium ? "Current Plan" : "Upgrade Now"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </div>
       </section>
     </div>

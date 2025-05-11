@@ -42,7 +42,7 @@ export default function RiskOpportunityChart({ overallScore = 75 }: RiskOpportun
     <div className="flex flex-col md:flex-row items-center justify-between w-full h-full">
       {/* Donut Chart */}
       <div className="w-full md:w-1/2 h-48">
-        <DonutScoreChart score={overallScore} animationActive={animationActive} />
+        <DonutScoreChart overallScore={overallScore} />
       </div>
 
       {/* Bar Chart */}

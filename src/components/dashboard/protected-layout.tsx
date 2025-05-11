@@ -1,7 +1,7 @@
 "use client";
 
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { Loader2, LockIcon, AlertCircle } from "lucide-react";
+import { Loader2, LockIcon } from "lucide-react";
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
