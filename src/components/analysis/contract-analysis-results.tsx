@@ -27,12 +27,12 @@ interface IContractAnalysisResultsProps {
   analysisResults: ContractAnalysis;
   contractId: string;
   isActive?: boolean;
-  isPremium?: boolean;
+  isPremium?: boolean; // Keep for backward compatibility
 }
 
 export default function ContractAnalysisResults({
   analysisResults,
-  isPremium: externalIsPremium,
+  isPremium: externalIsPremium, // Legacy prop for backward compatibility
 }: IContractAnalysisResultsProps) {
   const [activeTab, setActiveTab] = useState("summary");
   const [refreshChart, setRefreshChart] = useState(false);
@@ -41,36 +41,27 @@ export default function ContractAnalysisResults({
   const [showLimitWarning, setShowLimitWarning] = useState(false); 
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   
-  // Get user info
+  // Get user info and subscription status
   const { user } = useCurrentUser();
-  
+  const { 
+    subscriptionStatus, 
+    isSubscriptionLoading,
+    getUserPlan,
+    isPremium: isUserPremium,
+    hasGoldAccess
+  } = useSubscription();
 
-  // Use the subscription hook to determine premium status if needed
-  let subscriptionStatus, isSubscriptionLoading;
-  try {
-    const { 
-      subscriptionStatus: subStatus, 
-      isSubscriptionLoading: isSubLoading 
-    } = useSubscription();
-    
-    subscriptionStatus = subStatus;
-    isSubscriptionLoading = isSubLoading;
-  } catch (error) {
-    console.log("Subscription hook not available, using passed isPremium prop");
-    isSubscriptionLoading = false;
-  }
-  
-  // Determine premium status - prioritize external prop if available
-  const isPremium = externalIsPremium !== undefined 
-    ? externalIsPremium 
-    : subscriptionStatus?.status === "active";
+  // Determine user's plan and access levels
+  const userPlan = getUserPlan();
+  const isPremium = externalIsPremium ?? isUserPremium();
+  const isGold = hasGoldAccess();
 
   // Fetch user's contract count for the free plan limit
   const { data: userStats, isLoading: isStatsLoading } = useQuery({
     queryKey: ["user-contract-stats"],
     queryFn: async () => {
       // Only fetch stats if user is not premium
-      if (isPremium) return { contractCount: 0, contractLimit: Infinity };
+      if (isPremium) return { contractCount: 0, contractLimit: Infinity, plan: userPlan };
       
       try {
         const response = await api.get("/contracts/user-stats");
@@ -78,10 +69,10 @@ export default function ContractAnalysisResults({
       } catch (err) {
         console.error("Error fetching user contract stats:", err);
         // Default fallback values
-        return { contractCount: 0, contractLimit: 2 };
+        return { contractCount: 0, contractLimit: 2, plan: "basic" };
       }
     },
-    enabled: !!user && !isPremium, // Only run this query for non-premium users
+    enabled: !!user,
   });
 
   // Check if the user has reached their free plan limit
@@ -101,7 +92,7 @@ export default function ContractAnalysisResults({
     }
   }, [userStats, isPremium]);
 
-  console.log("Premium status:", isPremium);
+  console.log("User Plan:", userPlan, "Premium:", isPremium, "Gold:", isGold);
 
   if (!analysisResults) {
     return <div>No Results</div>
@@ -126,9 +117,10 @@ export default function ContractAnalysisResults({
   
   const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (targetPlan: "premium" | "gold" = "premium") => {
     try {
-      const response = await api.get("/payments/create-checkout-session");
+      // You might want to modify this endpoint to support different plan types
+      const response = await api.get(`/payments/create-checkout-session?plan=${targetPlan}`);
       console.log("response", response);
       const stripe = await stripePromise;
       await stripe?.redirectToCheckout({
@@ -136,6 +128,16 @@ export default function ContractAnalysisResults({
       });
     } catch (error) {
       console.error(error);
+      // Fallback to generic upgrade if plan-specific fails
+      try {
+        const response = await api.get("/payments/create-checkout-session");
+        const stripe = await stripePromise;
+        await stripe?.redirectToCheckout({
+          sessionId: response.data.sessionId,
+        });
+      } catch (fallbackError) {
+        console.error("Upgrade failed:", fallbackError);
+      }
     }
   };
 
@@ -174,7 +176,6 @@ export default function ContractAnalysisResults({
     }>,
     type: "risk" | "opportunity",
   ) => {
-    console.log("items", items);
     return (
       <div className="space-y-4">
         {items.map((item, index) => {
@@ -198,19 +199,27 @@ export default function ContractAnalysisResults({
     );
   };
 
-  const PremiumUpgradePrompt = () => {
+  const PremiumUpgradePrompt = ({ requiredPlan }: { requiredPlan?: "premium" | "gold" }) => {
+    const targetPlan = requiredPlan || "premium";
+    const planName = targetPlan === "gold" ? "Gold" : "Premium";
+    
     return (
       <div className="flex flex-col items-center justify-center p-4 sm:p-8 text-center">
         <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
           <Lock className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
         </div>
-        <h3 className="text-lg sm:text-xl font-bold mb-2">Premium Feature</h3>
+        <h3 className="text-lg sm:text-xl font-bold mb-2">{planName} Feature</h3>
         <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 max-w-md">
-          Unlock detailed contract analysis including key clauses, recommendations,
-          and negotiation points by upgrading to our Premium plan.
+          {targetPlan === "gold" 
+            ? "Unlock advanced AI features including contract chat and modification by upgrading to our Gold plan."
+            : "Unlock detailed contract analysis including key clauses, recommendations, and negotiation points by upgrading to our Premium plan."
+          }
         </p>
-        <Button onClick={handleUpgrade} className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 text-sm sm:text-base">
-          Upgrade to Premium
+        <Button 
+          onClick={() => handleUpgrade(targetPlan)} 
+          className={`${targetPlan === "gold" ? "bg-yellow-600 hover:bg-yellow-700" : "bg-blue-600 hover:bg-blue-700"} text-white px-4 sm:px-6 py-2 text-sm sm:text-base`}
+        >
+          Upgrade to {planName}
         </Button>
       </div>
     );
@@ -301,9 +310,20 @@ export default function ContractAnalysisResults({
     </div>
   );
 
-  // Ask AI button rendering based on premium status
+  // Ask AI button rendering based on plan status
   const renderAskAIButton = () => {
-    if (isPremium) {
+    if (isGold) {
+      // Gold users get full AI chat functionality
+      return (
+        <Button
+          className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm whitespace-nowrap"
+          onClick={handleOpenChatModal}
+        >
+          Ask AI (Gold)
+        </Button>
+      );
+    } else if (isPremium) {
+      // Premium users get basic AI chat
       return (
         <Button
           className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-nowrap"
@@ -313,6 +333,7 @@ export default function ContractAnalysisResults({
         </Button>
       );
     } else {
+      // Basic users see upgrade prompt
       return (
         <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
           <DialogTrigger asChild>
@@ -338,7 +359,7 @@ export default function ContractAnalysisResults({
               </DialogClose>
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
-                onClick={handleUpgrade}
+                onClick={() => handleUpgrade("premium")}
               >
                 Upgrade to Premium
               </Button>
@@ -349,6 +370,44 @@ export default function ContractAnalysisResults({
     }
   };
 
+  // Gold-specific features section
+  const GoldFeaturesSection = () => {
+    if (!isGold) return null;
+
+    return (
+      <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200 shadow-sm mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-yellow-800 text-lg flex items-center gap-2">
+            👑 Gold Features Available
+          </CardTitle>
+          <CardDescription className="text-yellow-700 text-sm">
+            You have access to our most advanced AI features
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Button 
+              onClick={handleOpenChatModal}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm"
+            >
+              🤖 AI Contract Chat
+            </Button>
+            <Button 
+              variant="outline"
+              className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 text-sm"
+              onClick={() => {
+                // Handle contract modification feature
+                console.log("Contract modification feature");
+              }}
+            >
+              ✏️ Modify Contract
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Free Plan Limit Upgrade Dialog
   const UpgradeDialog = () => (
     <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
@@ -357,35 +416,67 @@ export default function ContractAnalysisResults({
           <DialogTitle className="text-xl">Free Plan Limit Reached</DialogTitle>
           <DialogDescription className="text-sm text-gray-500 mt-2">
             You've used all {userStats?.contractLimit || 2} contracts allowed on the free plan. 
-            Upgrade to Premium to analyze unlimited contracts and access all premium features.
+            Choose your upgrade path:
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-500" />
-              <span>Unlimited contract analysis</span>
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4 bg-blue-50">
+              <h4 className="font-semibold text-blue-800 mb-2">Premium Plan</h4>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Unlimited contract analysis</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Full contract details</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Basic AI assistant</span>
+                </div>
+              </div>
+              <Button 
+                onClick={() => handleUpgrade("premium")} 
+                className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Upgrade to Premium
+              </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-500" />
-              <span>Full contract details</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-500" />
-              <span>AI assistant for all contracts</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-500" />
-              <span>Priority support</span>
+
+            <div className="border rounded-lg p-4 bg-yellow-50">
+              <h4 className="font-semibold text-yellow-800 mb-2">Gold Plan (Recommended)</h4>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Everything in Premium</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Advanced AI chat</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Contract modification</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">24/7 priority support</span>
+                </div>
+              </div>
+              <Button 
+                onClick={() => handleUpgrade("gold")} 
+                className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
+              >
+                Upgrade to Gold
+              </Button>
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
             Maybe Later
-          </Button>
-          <Button onClick={handleUpgrade} className="bg-blue-600 hover:bg-blue-700 text-white">
-            Upgrade Now
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -412,7 +503,7 @@ export default function ContractAnalysisResults({
             You have used {userStats?.contractCount || 1} of your {userStats?.contractLimit || 2} free contract analyses. 
             <Button 
               variant="link" 
-              onClick={handleUpgrade} 
+              onClick={() => handleUpgrade("premium")} 
               className="p-0 h-auto text-blue-600 font-medium hover:text-blue-800"
             >
               Upgrade to Premium
@@ -424,6 +515,9 @@ export default function ContractAnalysisResults({
       {/* Render the upgrade dialog */}
       <UpgradeDialog />
       
+      {/* Gold Features Section - only show for Gold users */}
+      <GoldFeaturesSection />
+
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 sm:mb-5">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Contract Analysis</h1>
         <div className="flex space-x-2 sm:space-x-3">
@@ -444,7 +538,7 @@ export default function ContractAnalysisResults({
           <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-4">
             <CardTitle className="text-lg sm:text-xl text-gray-800">Overall Contract Score</CardTitle>
             <CardDescription className="text-xs sm:text-sm text-gray-600">
-              Based on risks and opportunities analysis
+              Based on risks and opportunities analysis (Plan: {userPlan.charAt(0).toUpperCase() + userPlan.slice(1)})
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
@@ -500,31 +594,39 @@ export default function ContractAnalysisResults({
         <TabsList className="bg-gray-100 p-0.5 sm:p-1 rounded-lg flex space-x-0.5 sm:space-x-1 w-full overflow-x-auto">
           <TabsTrigger
             value="summary"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'summary' ? 'bg-blue-500 shadow-sm text-black' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'summary' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
           >
             <span className="font-medium">Summary</span>
           </TabsTrigger>
           <TabsTrigger
             value="risks"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'risks' ? 'bg-blue-500 text-black' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'risks' ? 'bg-blue-500 text-white' : 'text-gray-900'}`}
           >
             <span className="font-medium">Risks</span>
           </TabsTrigger>
           <TabsTrigger
             value="opportunities"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'opportunities' ? 'bg-blue-500 shadow-sm text-black' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'opportunities' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
           >
             <span className="font-medium">Opportunities</span>
           </TabsTrigger>
           <TabsTrigger
             value="details"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'details' ? 'bg-blue-500 shadow-sm text-black' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'details' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
             disabled={!isPremium}
           >
             <span className="font-medium whitespace-nowrap">
               Details {!isPremium && <Lock className="inline-block h-2 w-2 sm:h-3 sm:w-3 ml-0.5 sm:ml-1" />}
             </span>
           </TabsTrigger>
+          {isGold && (
+            <TabsTrigger
+              value="advanced"
+              className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'advanced' ? 'bg-yellow-500 shadow-sm text-white' : 'text-gray-900'}`}
+            >
+              <span className="font-medium whitespace-nowrap">👑 Advanced</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="summary">
@@ -543,7 +645,9 @@ export default function ContractAnalysisResults({
         <TabsContent value="risks">
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="border-b p-3 sm:p-4">
-              <CardTitle className="text-blue-600 text-base sm:text-lg">Risks</CardTitle>
+              <CardTitle className="text-blue-600 text-base sm:text-lg">
+                Risks ({userPlan === "basic" ? "Limited View" : `${analysisResults.risks?.length || 0} Identified`})
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-4">
               {renderRisksAndOpportunities(analysisResults.risks, "risk")}
@@ -554,7 +658,9 @@ export default function ContractAnalysisResults({
         <TabsContent value="opportunities">
           <Card className="bg-white shadow-sm border-0">
             <CardHeader className="border-b p-3 sm:p-4">
-              <CardTitle className="text-blue-600 text-base sm:text-lg">Opportunities</CardTitle>
+              <CardTitle className="text-blue-600 text-base sm:text-lg">
+                Opportunities ({userPlan === "basic" ? "Limited View" : `${analysisResults.opportunities?.length || 0} Identified`})
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-3 sm:p-4">
               {renderRisksAndOpportunities(
@@ -574,20 +680,90 @@ export default function ContractAnalysisResults({
               {isPremium ? (
                 <ContractDetailsContent />
               ) : (
-                <PremiumUpgradePrompt />
+                <PremiumUpgradePrompt requiredPlan="premium" />
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isGold && (
+          <TabsContent value="advanced">
+            <Card className="bg-white shadow-sm border-0">
+              <CardHeader className="border-b p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50">
+                <CardTitle className="text-yellow-800 text-base sm:text-lg flex items-center gap-2">
+                  👑 Gold Advanced Features
+                </CardTitle>
+                <CardDescription className="text-yellow-700">
+                  Exclusive AI-powered tools for Gold subscribers
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-4">
+                <div className="space-y-6">
+                  {/* AI Chat Section */}
+                  <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                    <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                      🤖 AI Contract Assistant
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Chat with our advanced AI about your contract. Ask questions, get clarifications, and receive expert insights.
+                    </p>
+                    <Button 
+                      onClick={handleOpenChatModal}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    >
+                      Start AI Conversation
+                    </Button>
+                  </div>
+
+                  {/* Contract Modification Section */}
+                  <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                    <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                      ✏️ Smart Contract Editor
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Request AI-powered modifications to your contract with intelligent suggestions and track changes.
+                    </p>
+                    <Button 
+                      variant="outline"
+                      className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                      onClick={() => {
+                        // Handle contract modification feature
+                        console.log("Contract modification feature");
+                      }}
+                    >
+                      Modify Contract
+                    </Button>
+                  </div>
+
+                  {/* Advanced Analytics Section */}
+                  <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                    <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                      📊 Advanced Analytics
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Get detailed insights with 15+ risk identifications, impact analysis, and custom recommendations.
+                    </p>
+                    <div className="text-sm text-yellow-700">
+                      <p>• Enhanced risk detection: {analysisResults.risks?.length || 0} risks identified</p>
+                      <p>• Impact analysis: {analysisResults.opportunities?.length || 0} opportunities found</p>
+                      <p>• Custom recommendations: {analysisResults.recommendations?.length || 0} suggestions</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
-      {/* Only render the ChatbotModal if isPremium is true */}
+      {/* Only render the ChatbotModal if user has premium or gold access */}
       {isPremium && (
         <ChatbotModal 
           open={isChatModalOpen} 
           onClose={handleCloseChatModal} 
           geminiApiKey={geminiApiKey} 
           context={analysisResults.contractText}
+          userPlan={userPlan} // Pass user plan to enable/disable features
         />
       )}
     </div>
