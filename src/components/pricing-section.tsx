@@ -14,17 +14,21 @@ export function PricingSection() {
     isSubscriptionLoading,
     isUserError,
     isSubscriptionError,
+    getUserPlan,
+    isPremium,
+    isGold,
   } = useSubscription();
 
-  // Determine if the user has premium status
-  const isPremium = subscriptionStatus?.status === "active";
-  const isGold = subscriptionStatus?.plan === "gold"; // Assuming you'll add plan type to subscription
+  // Get current user plan and status
+  const currentPlan = getUserPlan();
+  const isUserPremium = isPremium();
+  const isUserGold = isGold();
   
   // Combined loading state
   const isLoading = isUserLoading || isSubscriptionLoading;
 
   // Handle upgrade - this will create a checkout session and redirect to Stripe
-  const handleUpgrade = async (planType = "premium") => {
+  const handleUpgrade = async (planType: "premium" | "gold" = "premium") => {
     try {
       const response = await api.get(`/payments/create-checkout-session?plan=${planType}`);
       const stripe = await stripePromise;
@@ -34,6 +38,14 @@ export function PricingSection() {
     } catch (error) {
       console.error("Error creating checkout session:", error);
     }
+  };
+
+  // Helper function to determine if a plan is currently active
+  const isPlanActive = (planName: string): boolean => {
+    if (planName === "basic") return currentPlan === "basic";
+    if (planName === "premium") return currentPlan === "premium";
+    if (planName === "gold") return currentPlan === "gold";
+    return false;
   };
 
   return (
@@ -66,9 +78,13 @@ export function PricingSection() {
                 </div>
               ) : (
                 <>
-                  <span className="mr-2">Status:</span>
-                  <span className={`${isGold ? "text-yellow-600 font-semibold" : isPremium ? "text-green-600 font-semibold" : "text-blue-600"}`}>
-                    {isGold ? "Gold" : isPremium ? "Premium" : "Basic"}
+                  <span className="mr-2">Current Plan:</span>
+                  <span className={`font-semibold ${
+                    isUserGold ? "text-yellow-600" : 
+                    isUserPremium ? "text-blue-600" : 
+                    "text-gray-600"
+                  }`}>
+                    {isUserGold ? "Gold" : isUserPremium ? "Premium" : "Basic"}
                   </span>
                 </>
               )}
@@ -85,8 +101,12 @@ export function PricingSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
           >
-            <Card className={`h-full border ${(!isPremium && !isGold) ? "border-green-200 bg-green-50 shadow-md" : "border-gray-200 bg-white shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
-              {(!isPremium && !isGold && !isLoading) && (
+            <Card className={`h-full border ${
+              isPlanActive("basic") 
+                ? "border-green-200 bg-green-50 shadow-md ring-2 ring-green-200" 
+                : "border-gray-200 bg-white shadow-sm"
+            } rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
+              {isPlanActive("basic") && !isLoading && (
                 <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>CURRENT PLAN</span>
@@ -127,14 +147,16 @@ export function PricingSection() {
                   </div>
                 ) : (
                   <Button 
-                    className={`w-full ${(!isPremium && !isGold) 
-                      ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "border-blue-200 text-blue-600 hover:bg-blue-50"}`} 
+                    className={`w-full ${
+                      isPlanActive("basic")
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                    }`} 
                     onClick={() => window.location.href = "/dashboard"}
-                    variant={(!isPremium && !isGold) ? "default" : "outline"}
-                    disabled={(isPremium || isGold)}
+                    variant={isPlanActive("basic") ? "default" : "outline"}
+                    disabled={isPlanActive("basic")}
                   >
-                    {(!isPremium && !isGold) ? "Current Plan" : "Downgrade"}
+                    {isPlanActive("basic") ? "Current Plan" : "Get Started"}
                   </Button>
                 )}
               </CardContent>
@@ -149,13 +171,17 @@ export function PricingSection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
           >
-            <Card className={`h-full border ${(isPremium && !isGold) ? "border-green-200 bg-green-50 shadow-md" : "border-blue-200 bg-blue-50 shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
-              {!isLoading && ((isPremium && !isGold) ? (
+            <Card className={`h-full border ${
+              isPlanActive("premium") 
+                ? "border-green-200 bg-green-50 shadow-md ring-2 ring-green-200" 
+                : "border-blue-200 bg-blue-50 shadow-sm"
+            } rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
+              {!isLoading && (isPlanActive("premium") ? (
                 <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>CURRENT PLAN</span>
                 </div>
-              ) : !isGold && (
+              ) : !isUserGold && (
                 <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-bl">
                   POPULAR
                 </div>
@@ -200,21 +226,23 @@ export function PricingSection() {
                   </div>
                 ) : (
                   <Button 
-                    className={`w-full ${(isPremium && !isGold) 
-                      ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "bg-blue-600 hover:bg-blue-700 text-white"}`} 
-                    onClick={(isPremium && !isGold) ? () => window.location.href = "/dashboard" : () => handleUpgrade("premium")}
+                    className={`w-full ${
+                      isPlanActive("premium") 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                    }`} 
+                    onClick={isPlanActive("premium") ? () => window.location.href = "/dashboard" : () => handleUpgrade("premium")}
                     variant="default"
-                    disabled={(isPremium && !isGold)}
+                    disabled={isPlanActive("premium")}
                   >
-                    {(isPremium && !isGold) ? "Current Plan" : "Upgrade to Premium"}
+                    {isPlanActive("premium") ? "Current Plan" : "Upgrade to Premium"}
                   </Button>
                 )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Gold Plan - NEW */}
+          {/* Gold Plan */}
           <motion.div 
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -222,8 +250,12 @@ export function PricingSection() {
             transition={{ duration: 0.5, delay: 0.3 }}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
           >
-            <Card className={`h-full border ${isGold ? "border-green-200 bg-green-50 shadow-md" : "border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-lg relative`}>
-              {!isLoading && (isGold ? (
+            <Card className={`h-full border ${
+              isPlanActive("gold") 
+                ? "border-green-200 bg-green-50 shadow-md ring-2 ring-green-200" 
+                : "border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-sm"
+            } rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-lg relative`}>
+              {!isLoading && (isPlanActive("gold") ? (
                 <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>CURRENT PLAN</span>
@@ -282,14 +314,16 @@ export function PricingSection() {
                   </div>
                 ) : (
                   <Button 
-                    className={`w-full ${isGold 
-                      ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-md"}`} 
-                    onClick={isGold ? () => window.location.href = "/dashboard" : () => handleUpgrade("gold")}
+                    className={`w-full ${
+                      isPlanActive("gold") 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-md"
+                    }`} 
+                    onClick={isPlanActive("gold") ? () => window.location.href = "/dashboard" : () => handleUpgrade("gold")}
                     variant="default"
-                    disabled={isGold}
+                    disabled={isPlanActive("gold")}
                   >
-                    {isGold ? "Current Plan" : "Upgrade to Gold"}
+                    {isPlanActive("gold") ? "Current Plan" : "Upgrade to Gold"}
                   </Button>
                 )}
               </CardContent>

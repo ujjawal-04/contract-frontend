@@ -66,6 +66,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
 import { useSubscription } from "@/hooks/use-subscription"
 import { useCurrentUser } from "@/hooks/use-current-user"
+
 import stripePromise from "@/lib/stripe"
 
 // Updated interfaces
@@ -102,7 +103,7 @@ interface FilterOptions {
 }
 
 export default function UserContracts() {
-  const { user } = useCurrentUser()
+  const { user, refetch: refetchUser } = useCurrentUser()
   const {
     subscriptionStatus,
     isSubscriptionLoading,
@@ -127,6 +128,44 @@ export default function UserContracts() {
       try {
         const response = await api.get("/contracts/user-contracts")
         console.log("Contracts API response:", response.data)
+        console.log("Response data type:", typeof response.data)
+        console.log("Is response.data an array?:", Array.isArray(response.data))
+
+        // Check if response.data exists and is an array
+        if (!response.data) {
+          console.warn("No data received from API")
+          return []
+        }
+
+        if (!Array.isArray(response.data)) {
+          console.log("API response is not an array:", response.data)
+          // If it's an object with a contracts property, use that
+          if (response.data.contracts && Array.isArray(response.data.contracts)) {
+            console.log("Found contracts array in response.data.contracts")
+            const contractsArray = response.data.contracts
+            const enhancedData = contractsArray.map((contract: ContractAnalysis) => ({
+              ...contract,
+              documentType: contract.documentType || "pdf",
+            }))
+            console.log("Processed contracts:", enhancedData)
+            return enhancedData
+          }
+          // If it's an object with a data property, use that
+          if (response.data.data && Array.isArray(response.data.data)) {
+            console.log("Found contracts array in response.data.data")
+            const contractsArray = response.data.data
+            const enhancedData = contractsArray.map((contract: ContractAnalysis) => ({
+              ...contract,
+              documentType: contract.documentType || "pdf",
+            }))
+            console.log("Processed contracts:", enhancedData)
+            return enhancedData
+          }
+          // Return empty array if we can't find a valid contracts array
+          console.log("No valid contracts array found, returning empty array")
+          return []
+        }
+
         // Add documentType if it doesn't exist (for backward compatibility)
         const enhancedData = response.data.map((contract: ContractAnalysis) => ({
           ...contract,
@@ -140,7 +179,11 @@ export default function UserContracts() {
     },
   })
 
-  const { data: userStats, isLoading: isStatsLoading } = useQuery({
+  const {
+    data: userStats,
+    isLoading: isStatsLoading,
+    refetch: refetchStats,
+  } = useQuery({
     queryKey: ["user-contract-stats"],
     queryFn: async () => {
       // Only fetch stats if user is not premium
@@ -185,19 +228,48 @@ export default function UserContracts() {
   // Track if filters are active
   const [filtersActive, setFiltersActive] = useState(false)
 
+  // Add payment success handling effect
+  useEffect(() => {
+    // Listen for focus events (user returning from Stripe)
+    const handleFocus = () => {
+      console.log("Window focused, refreshing data...")
+      refetchUser()
+      refetch()
+      refetchStats()
+    }
+
+    // Listen for URL changes (for payment success/cancel)
+    const urlParams = new URLSearchParams(window.location.search)
+    const plan = urlParams.get("plan")
+
+    if (plan && (plan === "premium" || plan === "gold")) {
+      console.log(`Payment successful for ${plan} plan, refreshing data...`)
+      // Wait a bit for webhook processing
+      setTimeout(() => {
+        refetchUser()
+        refetch()
+        refetchStats()
+      }, 2000)
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
+  }, [refetchUser, refetch, refetchStats])
+
   useEffect(() => {
     if (userStats && !isPremium) {
       const { contractCount, contractLimit } = userStats
 
-      // Show warning when user is approaching their limit (1 left)
-      if (contractCount === contractLimit - 1) {
-        setShowLimitWarning(true)
-      }
-
-      // Show upgrade dialog when user has reached their limit
+      // Only show upgrade dialog when user has actually reached their limit
       if (contractCount >= contractLimit) {
         setShowUpgradeDialog(true)
+      } else {
+        // Ensure dialog is hidden if user hasn't reached limit
+        setShowUpgradeDialog(false)
       }
+    } else if (isPremium) {
+      // Hide dialog for premium users
+      setShowUpgradeDialog(false)
     }
   }, [userStats, isPremium])
 
@@ -225,6 +297,13 @@ export default function UserContracts() {
   }
 
   const handleNewContractClick = () => {
+    // Gold and Premium users should always be able to add contracts
+    if (isPremium || isGold) {
+      setIsUploadModalOpen(true)
+      return
+    }
+
+    // Only check limits for basic users
     if (!isPremium && userStats && userStats.contractCount >= userStats.contractLimit) {
       setShowUpgradeDialog(true)
       return
@@ -900,8 +979,7 @@ export default function UserContracts() {
     </Dialog>
   )
 
-  // Show loading state while subscription status or stats are being loaded
-  if ((isSubscriptionLoading && !isPremium) || (isStatsLoading && !isPremium)) {
+  if ((isSubscriptionLoading && !isPremium && !isGold) || (isStatsLoading && !isPremium && !isGold)) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-blue-500"></div>
@@ -912,7 +990,7 @@ export default function UserContracts() {
   return (
     <div className="bg-white w-full">
       <div className="max-w-[1400px] mx-auto p-3 md:p-6">
-        {showLimitWarning && !isPremium && (
+        {showLimitWarning && !isPremium && !isGold && (
           <Alert className="mb-4 bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-500" />
             <AlertTitle className="text-amber-800">Free Plan Limit Warning</AlertTitle>
@@ -931,7 +1009,7 @@ export default function UserContracts() {
           </Alert>
         )}
 
-        <UpgradeDialog />
+        {!isPremium && !isGold && <UpgradeDialog />}
 
         <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -939,7 +1017,7 @@ export default function UserContracts() {
             {getPlanBadge()}
           </div>
           <div className="flex items-center gap-2">
-            {!isPremium && userStats && (
+            {!isPremium && !isGold && userStats && (
               <span className="text-sm text-gray-500 mr-2">
                 {userStats.contractCount}/{userStats.contractLimit} contracts used
               </span>
@@ -954,12 +1032,17 @@ export default function UserContracts() {
                     ? "bg-blue-600 hover:bg-blue-700"
                     : "bg-blue-600 hover:bg-blue-700",
               )}
-              disabled={!isPremium && userStats && userStats.contractCount >= userStats.contractLimit}
+              disabled={!isPremium && !isGold && userStats && userStats.contractCount >= userStats.contractLimit}
             >
-              {!isPremium && userStats && userStats.contractCount >= userStats.contractLimit ? (
+              {!isPremium && !isGold && userStats && userStats.contractCount >= userStats.contractLimit ? (
                 <>
                   <Lock className="h-4 w-4 mr-2" />
                   Upgrade to Add More
+                </>
+              ) : isGold ? (
+                <>
+                  <Crown className="h-4 w-4 mr-2" />
+                  New Contract
                 </>
               ) : (
                 "New Contract"

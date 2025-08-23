@@ -77,20 +77,21 @@ export default function ContractAnalysisResults({
 
   // Check if the user has reached their free plan limit
   useEffect(() => {
-    if (userStats && !isPremium) {
-      const { contractCount, contractLimit } = userStats;
-      
-      // Show warning when user is approaching their limit (1 left)
-      if (contractCount === contractLimit - 1) {
-        setShowLimitWarning(true);
-      }
-      
-      // Show upgrade dialog when user has reached their limit
-      if (contractCount >= contractLimit) {
-        setShowUpgradeDialog(true);
-      }
+  if (userStats && !isPremium) {
+    const { contractCount, contractLimit } = userStats;
+    
+    // Only show upgrade dialog when user has actually reached their limit
+    if (contractCount >= contractLimit) {
+      setShowUpgradeDialog(true);
+    } else {
+      // Ensure dialog is hidden if user hasn't reached limit
+      setShowUpgradeDialog(false);
     }
-  }, [userStats, isPremium]);
+  } else if (isPremium) {
+    // Hide dialog for premium users
+    setShowUpgradeDialog(false);
+  }
+}, [userStats, isPremium]);
 
   console.log("User Plan:", userPlan, "Premium:", isPremium, "Gold:", isGold);
 
