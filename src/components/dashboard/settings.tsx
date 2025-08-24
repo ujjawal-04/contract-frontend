@@ -28,7 +28,9 @@ import {
   LucideProps,
   Crown,
   Zap,
-  Star
+  Star,
+  Check,
+  Sparkles
 } from "lucide-react";
 import {
   Dialog,
@@ -55,6 +57,7 @@ export default function GlobalSettings() {
   const { user } = useCurrentUser();
   const [isClient, setIsClient] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   
   // Get user plan and access levels
   const userPlan = getUserPlan();
@@ -81,13 +84,23 @@ export default function GlobalSettings() {
   useEffect(() => {
     setIsClient(true);
   }, [user]);
+
+  // Check if user should see upgrade dialog for free plan limits
+  useEffect(() => {
+    if (userStats && !isPremium) {
+      const { contractCount, contractLimit } = userStats;
+      if (contractCount >= contractLimit) {
+        setShowUpgradeDialog(true);
+      }
+    }
+  }, [userStats, isPremium]);
   
   // If we haven't confirmed client-side rendering yet, show a loading state
   if (!isClient) {
     return (
       <div className="w-full max-w-full min-h-[50vh] flex items-center justify-center px-4">
         <div className="flex flex-col items-center justify-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+          <div className={`animate-spin h-8 w-8 border-4 ${isGold ? 'border-yellow-500' : 'border-blue-500'} border-t-transparent rounded-full mb-4`}></div>
           <p className="text-gray-500 text-center">Loading your settings...</p>
         </div>
       </div>
@@ -125,6 +138,7 @@ export default function GlobalSettings() {
       }
     } else {
       toast.error(`You already have ${targetPlan} access`);
+      setLoading(false);
     }
   };
 
@@ -174,7 +188,7 @@ export default function GlobalSettings() {
       "Priority support"
     ],
     gold: [
-      "Premium features plus:",
+      "Everything in Premium plus:",
       "Unlimited AI chat",
       "Advanced contract modifications",
       "15+ risk identifications",
@@ -206,7 +220,7 @@ export default function GlobalSettings() {
       // Gold plan notifications
       notifications.push({
         id: 1,
-        type: "success",
+        type: "gold",
         icon: Crown,
         title: "Gold member benefits active",
         message: `You have unlimited access to all features. You've analyzed ${contractCount} contracts with advanced AI assistance.`,
@@ -217,8 +231,8 @@ export default function GlobalSettings() {
       if (contractCount > 20) {
         notifications.push({
           id: 2,
-          type: "info",
-          icon: TrendingUp,
+          type: "gold",
+          icon: Sparkles,
           title: "Power user achievement!",
           message: `Incredible! You've analyzed ${contractCount} contracts with our Gold AI. You're maximizing your legal efficiency.`,
           timestamp: "This month",
@@ -296,7 +310,7 @@ export default function GlobalSettings() {
     // Account status notification
     notifications.push({
       id: 9,
-      type: "info",
+      type: isGold ? "gold" : "info",
       icon: Shield,
       title: "Account Status",
       message: `Your account is active and secure. Plan: ${isGold ? 'Gold (Premium)' : isPremium ? 'Premium (Lifetime)' : 'Basic (Free)'}`,
@@ -332,6 +346,13 @@ export default function GlobalSettings() {
           iconColor: "text-green-500",
           textColor: "text-green-800"
         };
+      case "gold":
+        return {
+          bgColor: "bg-gradient-to-br from-yellow-50 to-amber-50",
+          borderColor: "border-yellow-200",
+          iconColor: "text-yellow-600",
+          textColor: "text-yellow-800"
+        };
       case "info":
       default:
         return {
@@ -347,7 +368,7 @@ export default function GlobalSettings() {
   const getPlanBadge = () => {
     if (isGold) {
       return (
-        <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-0 font-semibold">
+        <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-0 font-semibold shadow-md">
           <Crown className="h-3 w-3 mr-1" />
           Gold
         </Badge>
@@ -375,19 +396,116 @@ export default function GlobalSettings() {
     return planFeatures.basic;
   };
 
-  // Get upgrade target features
-  const getUpgradeFeatures = () => {
-    if (isGold) return []; // Already at highest tier
-    if (isPremium) return planFeatures.gold.filter(f => !planFeatures.premium.includes(f));
-    return planFeatures.premium.filter(f => !planFeatures.basic.includes(f));
+  // Gold Features Section - enhanced with better styling
+  const GoldFeaturesSection = () => {
+    if (!isGold) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-yellow-50 border-2 border-yellow-300 shadow-lg mb-6 overflow-hidden relative">
+          {/* Sparkle animation background */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-4 right-4 animate-pulse">
+              <Sparkles className="h-6 w-6 text-yellow-500" />
+            </div>
+            <div className="absolute top-8 left-8 animate-pulse delay-300">
+              <Star className="h-4 w-4 text-yellow-400" />
+            </div>
+            <div className="absolute bottom-6 right-8 animate-pulse delay-700">
+              <Crown className="h-5 w-5 text-yellow-500" />
+            </div>
+          </div>
+          
+          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6 relative">
+            <CardTitle className="text-yellow-800 text-lg flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-yellow-200 rounded-full">
+                  <Crown className="h-5 w-5 text-yellow-700" />
+                </div>
+                <span className="bg-gradient-to-r from-yellow-700 to-amber-700 bg-clip-text text-transparent font-bold">
+                  Gold Features Active
+                </span>
+              </div>
+            </CardTitle>
+            <CardDescription className="text-yellow-700 text-sm">
+              You have access to our most advanced AI features and unlimited everything
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-6 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <motion.div 
+                className="flex items-center gap-2 text-sm text-yellow-700"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="p-0.5 bg-yellow-200 rounded-full">
+                  <Check className="h-3 w-3 text-yellow-700" />
+                </div>
+                <span className="font-medium">Unlimited AI chat</span>
+              </motion.div>
+              <motion.div 
+                className="flex items-center gap-2 text-sm text-yellow-700"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="p-0.5 bg-yellow-200 rounded-full">
+                  <Check className="h-3 w-3 text-yellow-700" />
+                </div>
+                <span className="font-medium">Advanced contract modifications</span>
+              </motion.div>
+              <motion.div 
+                className="flex items-center gap-2 text-sm text-yellow-700"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="p-0.5 bg-yellow-200 rounded-full">
+                  <Check className="h-3 w-3 text-yellow-700" />
+                </div>
+                <span className="font-medium">15+ risk identifications</span>
+              </motion.div>
+              <motion.div 
+                className="flex items-center gap-2 text-sm text-yellow-700"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="p-0.5 bg-yellow-200 rounded-full">
+                  <Check className="h-3 w-3 text-yellow-700" />
+                </div>
+                <span className="font-medium">24/7 priority support</span>
+              </motion.div>
+            </div>
+            
+            {/* Gold member exclusive badge */}
+            <div className="mt-4 flex justify-center">
+              <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-4 py-2 text-sm font-bold shadow-md">
+                <Crown className="h-4 w-4 mr-2" />
+                Gold Member Exclusive
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
   };
 
   return (
-    <div className="w-full max-w-full mx-auto py-4 xs:py-6 sm:py-8 md:py-10 px-3 xs:px-4 sm:px-6">
+    <div className={`w-full max-w-full mx-auto py-4 xs:py-6 sm:py-8 md:py-10 px-3 xs:px-4 sm:px-6 ${isGold ? 'bg-gradient-to-br from-yellow-50/30 to-amber-50/30 min-h-screen' : ''}`}>
       <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 mb-4 sm:mb-6">
         <div className="flex items-center">
-          <Settings className="h-5 w-5 sm:h-6 sm:w-6 mr-2 text-blue-600 flex-shrink-0" />
-          <h1 className="text-xl sm:text-2xl font-bold truncate">Account Settings</h1>
+          <div className={`p-2 rounded-lg mr-3 ${isGold ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-blue-600'}`}>
+            <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-white flex-shrink-0" />
+          </div>
+          <h1 className={`text-xl sm:text-2xl font-bold ${isGold ? 'bg-gradient-to-r from-yellow-700 to-amber-700 bg-clip-text text-transparent' : ''}`}>
+            Account Settings
+          </h1>
+          {isGold && (
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <Crown className="h-6 w-6 text-yellow-600 ml-2" />
+            </motion.div>
+          )}
         </div>
         
         {/* Enhanced subscription status indicator */}
@@ -397,15 +515,15 @@ export default function GlobalSettings() {
             <span className="truncate">Error loading subscription</span>
           </div>
         ) : (
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-gray-100 text-gray-800 mt-1 xs:mt-0 self-start xs:self-auto">
+          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium mt-1 xs:mt-0 self-start xs:self-auto ${isGold ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-200' : 'bg-gray-100 text-gray-800'}`}>
             {isSubscriptionLoading ? (
               <div className="flex items-center">
-                <div className="animate-spin h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 border-b-2 border-gray-500 rounded-full"></div>
+                <div className={`animate-spin h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 border-b-2 rounded-full ${isGold ? 'border-yellow-500' : 'border-gray-500'}`}></div>
                 <span className="truncate">Loading...</span>
               </div>
             ) : (
               <>
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0 text-blue-500" />
+                <Shield className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 flex-shrink-0 ${isGold ? 'text-yellow-600' : 'text-blue-500'}`} />
                 <span className="mr-1 sm:mr-2 hidden xs:inline">Plan:</span>
                 {getPlanBadge()}
               </>
@@ -413,14 +531,17 @@ export default function GlobalSettings() {
           </div>
         )}
       </div>
+
+      {/* Gold Features Section - only show for Gold users */}
+      <GoldFeaturesSection />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Personal Information Card */}
-          <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="bg-slate-50 pb-3 sm:pb-4 px-4 sm:px-6">
+          <Card className={`overflow-hidden ${isGold ? 'shadow-lg border-yellow-200 bg-gradient-to-br from-white to-yellow-50/20' : 'shadow-sm'}`}>
+            <CardHeader className={`pb-3 sm:pb-4 px-4 sm:px-6 ${isGold ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200' : 'bg-slate-50'}`}>
               <div className="flex items-center">
-                <User className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                <User className={`mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${isGold ? 'text-yellow-600' : 'text-blue-600'}`} />
                 <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
               </div>
               <CardDescription className="text-xs sm:text-sm">Your account details</CardDescription>
@@ -432,7 +553,7 @@ export default function GlobalSettings() {
                   <Input 
                     value={user?.displayName || "Not Set"} 
                     readOnly 
-                    className="bg-gray-50 text-sm h-9"
+                    className={`text-sm h-9 ${isGold ? 'bg-yellow-50/50 border-yellow-200' : 'bg-gray-50'}`}
                   />
                 </div>
                 <div>
@@ -440,7 +561,7 @@ export default function GlobalSettings() {
                   <Input 
                     value={user?.email || "Enter your email address"} 
                     readOnly 
-                    className="bg-gray-50 text-sm h-9"
+                    className={`text-sm h-9 ${isGold ? 'bg-yellow-50/50 border-yellow-200' : 'bg-gray-50'}`}
                   />
                 </div>
               </div>
@@ -448,26 +569,26 @@ export default function GlobalSettings() {
           </Card>
 
           {/* Enhanced Membership Card */}
-          <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="bg-slate-50 pb-3 sm:pb-4 px-4 sm:px-6">
+          <Card className={`overflow-hidden ${isGold ? 'shadow-lg border-yellow-200 bg-gradient-to-br from-white to-yellow-50/20' : 'shadow-sm'}`}>
+            <CardHeader className={`pb-3 sm:pb-4 px-4 sm:px-6 ${isGold ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200' : 'bg-slate-50'}`}>
               <div className="flex items-center">
-                <CreditCard className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                <CreditCard className={`mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${isGold ? 'text-yellow-600' : 'text-blue-600'}`} />
                 <CardTitle className="text-base sm:text-lg">Membership Status</CardTitle>
               </div>
               <CardDescription className="text-xs sm:text-sm">Your subscription details and features</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
               {/* Current Plan Status */}
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border bg-slate-50">
+              <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border ${isGold ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200' : 'bg-slate-50'}`}>
                 <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 sm:gap-4">
                   <div>
                     <div className="flex items-center mb-1 sm:mb-2">
-                      <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full ${isGold ? 'bg-yellow-500' : isPremium ? 'bg-blue-500' : 'bg-gray-500'} mr-2 flex-shrink-0`}></div>
+                      <div className={`h-2 w-2 sm:h-3 sm:w-3 rounded-full mr-2 flex-shrink-0 ${isGold ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : isPremium ? 'bg-blue-500' : 'bg-gray-500'}`}></div>
                       <span className="font-medium text-sm sm:text-base">
                         {isGold ? 'Gold Plan' : isPremium ? 'Premium Plan' : 'Basic Plan'}
                       </span>
                       {(isGold || isPremium) && (
-                        <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-100 text-xs">
+                        <Badge className={`ml-2 text-xs ${isGold ? 'bg-gradient-to-r from-yellow-200 to-amber-200 text-yellow-800 border-yellow-300' : 'bg-green-100 text-green-800'} hover:bg-green-100`}>
                           {isGold ? 'Gold Access' : 'Lifetime'}
                         </Badge>
                       )}
@@ -482,26 +603,33 @@ export default function GlobalSettings() {
                     </p>
                   </div>
                   
-                  {(!isPremium || (isPremium && !isGold)) && !isSubscriptionLoading && (
+                  {/* Show appropriate upgrade buttons */}
+                  {!isPremium && !isSubscriptionLoading && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 whitespace-nowrap"
+                        onClick={() => handleUpgrade("premium")}
+                      >
+                        <Zap className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        Upgrade to Premium
+                      </Button>
+                      <Button
+                        className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 whitespace-nowrap shadow-md"
+                        onClick={() => handleUpgrade("gold")}
+                      >
+                        <Crown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        Upgrade to Gold
+                      </Button>
+                    </div>
+                  )}
+
+                  {isPremium && !isGold && !isSubscriptionLoading && (
                     <Button
-                      className={`${
-                        !isPremium 
-                          ? "bg-blue-600 hover:bg-blue-700" 
-                          : "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-                      } text-white text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 whitespace-nowrap`}
-                      onClick={() => handleUpgrade(!isPremium ? "premium" : "gold")}
+                      className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 whitespace-nowrap shadow-md"
+                      onClick={() => handleUpgrade("gold")}
                     >
-                      {!isPremium ? (
-                        <>
-                          Upgrade to Premium
-                          <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        </>
-                      ) : (
-                        <>
-                          <Crown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                          Upgrade to Gold
-                        </>
-                      )}
+                      <Crown className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      Upgrade to Gold
                     </Button>
                   )}
                 </div>
@@ -509,28 +637,28 @@ export default function GlobalSettings() {
 
               {/* Usage Statistics */}
               {userStats && !isStatsLoading && (
-                <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border bg-blue-50">
-                  <h3 className="font-medium text-sm sm:text-base mb-2 text-blue-800">Usage Statistics</h3>
+                <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border ${isGold ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200' : 'bg-blue-50'}`}>
+                  <h3 className={`font-medium text-sm sm:text-base mb-2 ${isGold ? 'text-yellow-800' : 'text-blue-800'}`}>Usage Statistics</h3>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs sm:text-sm text-blue-700">Contracts Analyzed</span>
-                    <span className="font-semibold text-sm sm:text-base text-blue-800">
+                    <span className={`text-xs sm:text-sm ${isGold ? 'text-yellow-700' : 'text-blue-700'}`}>Contracts Analyzed</span>
+                    <span className={`font-semibold text-sm sm:text-base ${isGold ? 'text-yellow-800' : 'text-blue-800'}`}>
                       {userStats.contractCount}{!isPremium && ` / ${userStats.contractLimit}`}
                     </span>
                   </div>
                   
                   {!isPremium && (
                     <>
-                      <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+                      <div className={`w-full rounded-full h-2 mb-2 ${isGold ? 'bg-yellow-200' : 'bg-blue-200'}`}>
                         <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          className={`h-2 rounded-full transition-all duration-300 ${isGold ? 'bg-gradient-to-r from-yellow-400 to-amber-500' : 'bg-blue-600'}`} 
                           style={{ width: `${Math.min((userStats.contractCount / userStats.contractLimit) * 100, 100)}%` }}
                         ></div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-blue-600">
+                        <span className={`text-xs ${isGold ? 'text-yellow-600' : 'text-blue-600'}`}>
                           {userStats.contractLimit - userStats.contractCount} remaining
                         </span>
-                        <span className="text-xs text-blue-600">
+                        <span className={`text-xs ${isGold ? 'text-yellow-600' : 'text-blue-600'}`}>
                           {Math.round((userStats.contractCount / userStats.contractLimit) * 100)}% used
                         </span>
                       </div>
@@ -541,12 +669,12 @@ export default function GlobalSettings() {
                   {(isPremium || isGold) && (
                     <div className="mt-3 grid grid-cols-2 gap-4">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-800">∞</div>
-                        <div className="text-xs text-blue-600">AI Messages</div>
+                        <div className={`text-lg font-bold ${isGold ? 'text-yellow-800' : 'text-blue-800'}`}>∞</div>
+                        <div className={`text-xs ${isGold ? 'text-yellow-600' : 'text-blue-600'}`}>AI Messages</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-800">∞</div>
-                        <div className="text-xs text-blue-600">Analyses</div>
+                        <div className={`text-lg font-bold ${isGold ? 'text-yellow-800' : 'text-blue-800'}`}>∞</div>
+                        <div className={`text-xs ${isGold ? 'text-yellow-600' : 'text-blue-600'}`}>Analyses</div>
                       </div>
                     </div>
                   )}
@@ -558,52 +686,104 @@ export default function GlobalSettings() {
                 <h3 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">Your plan includes:</h3>
                 <div className="space-y-1 sm:space-y-2">
                   {getCurrentPlanFeatures().map((feature, index) => (
-                    <div key={index} className="flex items-start">
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0" />
-                      <span className="text-xs sm:text-sm text-slate-700">{feature}</span>
-                    </div>
+                    <motion.div 
+                      key={index} 
+                      className="flex items-start"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <div className={`p-0.5 rounded-full mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0 ${isGold ? 'bg-yellow-200' : ''}`}>
+                        <CheckCircle2 className={`h-4 w-4 sm:h-5 sm:w-5 ${isGold ? 'text-yellow-600' : 'text-green-500'}`} />
+                      </div>
+                      <span className={`text-xs sm:text-sm ${isGold ? 'text-yellow-800 font-medium' : 'text-slate-700'}`}>{feature}</span>
+                    </motion.div>
                   ))}
                 </div>
 
-                {/* Upgrade section */}
-                {getUpgradeFeatures().length > 0 && (
+                {/* Upgrade section for non-Gold users */}
+                {!isGold && (
                   <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-dashed border-slate-200">
-                    <h3 className="font-medium text-sm sm:text-base mb-2 sm:mb-3 text-blue-600">
-                      {!isPremium ? "Upgrade to Premium to unlock:" : "Upgrade to Gold to unlock:"}
-                    </h3>
-                    <div className="space-y-1 sm:space-y-2">
-                      {getUpgradeFeatures().map((feature, index) => (
-                        <div key={index} className="flex items-start">
-                          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0" />
-                          <span className="text-xs sm:text-sm text-slate-500">{feature}</span>
+                    {!isPremium ? (
+                      <>
+                        <h3 className="font-medium text-sm sm:text-base mb-2 sm:mb-3 text-blue-600">
+                          Upgrade to Premium to unlock:
+                        </h3>
+                        <div className="space-y-1 sm:space-y-2 mb-4">
+                          {planFeatures.premium.filter(f => !planFeatures.basic.includes(f)).map((feature, index) => (
+                            <div key={index} className="flex items-start">
+                              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs sm:text-sm text-slate-500">{feature}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    
-                    <motion.div 
-                      className="mt-4 sm:mt-6"
-                      initial={{ opacity: 0.8 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
-                    >
-                      <Button
-                        className={`w-full ${
-                          !isPremium 
-                            ? "bg-blue-600 hover:bg-blue-700" 
-                            : "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-                        } text-white text-xs sm:text-sm h-9 sm:h-10`}
-                        onClick={() => handleUpgrade(!isPremium ? "premium" : "gold")}
-                      >
-                        {!isPremium ? (
-                          "Upgrade to Premium"
-                        ) : (
-                          <>
+
+                        <h3 className="font-medium text-sm sm:text-base mb-2 sm:mb-3 text-yellow-600 flex items-center gap-2">
+                          <Crown className="h-4 w-4" />
+                          Or upgrade to Gold for everything:
+                        </h3>
+                        <div className="space-y-1 sm:space-y-2 mb-4">
+                          {planFeatures.gold.filter(f => !planFeatures.basic.includes(f)).map((feature, index) => (
+                            <div key={index} className="flex items-start">
+                              <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500 mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs sm:text-sm text-yellow-700">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <motion.div 
+                          className="space-y-3"
+                          initial={{ opacity: 0.8 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                        >
+                          <Button
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                            onClick={() => handleUpgrade("premium")}
+                          >
+                            <Zap className="mr-2 h-4 w-4" />
+                            Upgrade to Premium
+                          </Button>
+                          <Button
+                            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-xs sm:text-sm h-9 sm:h-10 shadow-md"
+                            onClick={() => handleUpgrade("gold")}
+                          >
+                            <Crown className="mr-2 h-4 w-4" />
+                            Upgrade to Gold (Recommended)
+                          </Button>
+                        </motion.div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="font-medium text-sm sm:text-base mb-2 sm:mb-3 text-yellow-600 flex items-center gap-2">
+                          <Crown className="h-4 w-4" />
+                          Upgrade to Gold to unlock:
+                        </h3>
+                        <div className="space-y-1 sm:space-y-2">
+                          {planFeatures.gold.filter(f => !planFeatures.premium.includes(f) && f !== "Everything in Premium plus:").map((feature, index) => (
+                            <div key={index} className="flex items-start">
+                              <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500 mr-1.5 sm:mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs sm:text-sm text-yellow-700">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <motion.div 
+                          className="mt-4 sm:mt-6"
+                          initial={{ opacity: 0.8 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+                        >
+                          <Button
+                            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-xs sm:text-sm h-9 sm:h-10 shadow-md"
+                            onClick={() => handleUpgrade("gold")}
+                          >
                             <Crown className="mr-2 h-4 w-4" />
                             Upgrade to Gold
-                          </>
-                        )}
-                      </Button>
-                    </motion.div>
+                          </Button>
+                        </motion.div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -613,10 +793,10 @@ export default function GlobalSettings() {
 
         <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           {/* Enhanced Notifications Card */}
-          <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="bg-slate-50 pb-3 sm:pb-4 px-4 sm:px-6">
+          <Card className={`overflow-hidden ${isGold ? 'shadow-lg border-yellow-200 bg-gradient-to-br from-white to-yellow-50/20' : 'shadow-sm'}`}>
+            <CardHeader className={`pb-3 sm:pb-4 px-4 sm:px-6 ${isGold ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200' : 'bg-slate-50'}`}>
               <div className="flex items-center">
-                <Bell className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                <Bell className={`mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${isGold ? 'text-yellow-600' : 'text-blue-600'}`} />
                 <CardTitle className="text-base sm:text-lg">Notifications</CardTitle>
               </div>
               <CardDescription className="text-xs sm:text-sm">Account alerts and updates</CardDescription>
@@ -625,7 +805,7 @@ export default function GlobalSettings() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {isStatsLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    <div className={`animate-spin h-6 w-6 border-2 border-t-transparent rounded-full ${isGold ? 'border-yellow-500' : 'border-blue-500'}`}></div>
                   </div>
                 ) : (
                   notifications.map((notification) => {
@@ -633,13 +813,19 @@ export default function GlobalSettings() {
                     const IconComponent = notification.icon;
                     
                     return (
-                      <div 
+                      <motion.div 
                         key={notification.id} 
                         className={`p-3 rounded-lg border ${styles.bgColor} ${styles.borderColor}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: notification.id * 0.1 }}
+                        whileHover={{ scale: 1.02 }}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0">
-                            <IconComponent className={`h-4 w-4 ${styles.iconColor} mt-0.5`} />
+                            <div className={`p-1 rounded-full ${notification.type === 'gold' ? 'bg-yellow-200' : ''}`}>
+                              <IconComponent className={`h-4 w-4 ${styles.iconColor} mt-0.5`} />
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className={`font-medium text-xs sm:text-sm ${styles.textColor} mb-1`}>
@@ -654,18 +840,28 @@ export default function GlobalSettings() {
                                 {notification.timestamp}
                               </span>
                               {notification.action === "upgrade" && (
-                                <Button
-                                  size="sm"
-                                  className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                                  onClick={() => handleUpgrade("premium")}
-                                >
-                                  Upgrade
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() => handleUpgrade("premium")}
+                                  >
+                                    Premium
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-6 px-2 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-md"
+                                    onClick={() => handleUpgrade("gold")}
+                                  >
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Gold
+                                  </Button>
+                                </div>
                               )}
                               {notification.action === "upgrade_gold" && (
                                 <Button
                                   size="sm"
-                                  className="h-6 px-2 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white"
+                                  className="h-6 px-2 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-md"
                                   onClick={() => handleUpgrade("gold")}
                                 >
                                   <Crown className="h-3 w-3 mr-1" />
@@ -675,7 +871,7 @@ export default function GlobalSettings() {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })
                 )}
@@ -684,16 +880,81 @@ export default function GlobalSettings() {
           </Card>
 
           {/* Action Card */}
-          <Card className="overflow-hidden shadow-sm">
-            <CardHeader className="bg-slate-50 pb-3 sm:pb-4 px-4 sm:px-6">
+          <Card className={`overflow-hidden ${isGold ? 'shadow-lg border-yellow-200 bg-gradient-to-br from-white to-yellow-50/20' : 'shadow-sm'}`}>
+            <CardHeader className={`pb-3 sm:pb-4 px-4 sm:px-6 ${isGold ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200' : 'bg-slate-50'}`}>
               <div className="flex items-center">
-                <Settings className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                <Settings className={`mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${isGold ? 'text-yellow-600' : 'text-blue-600'}`} />
                 <CardTitle className="text-base sm:text-lg">Account Actions</CardTitle>
               </div>
               <CardDescription className="text-xs sm:text-sm">Manage your account</CardDescription>
             </CardHeader>
             <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
               <div className="space-y-4">
+                {/* Gold Member Status for Gold users */}
+                {isGold && (
+                  <div className="border-l-4 border-yellow-500 bg-gradient-to-r from-yellow-50 to-amber-50 p-3 sm:p-4 rounded-sm mb-4">
+                    <div className="flex items-start">
+                      <div className="bg-yellow-200 rounded-md p-1 mr-2 flex-shrink-0">
+                        <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-xs sm:text-sm text-yellow-800">Gold Member Status</h3>
+                        <p className="text-xs text-yellow-700 mb-2 sm:mb-3 mt-0.5">
+                          You're enjoying the highest tier of our service with unlimited access to all premium features
+                        </p>
+                        <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-xs px-2 py-1">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Gold Member
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upgrade Actions for non-Gold users */}
+                {!isGold && (
+                  <div className={`border-l-4 p-3 sm:p-4 rounded-sm mb-4 ${isPremium ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-amber-50' : 'border-blue-500 bg-blue-50'}`}>
+                    <div className="flex items-start">
+                      <div className={`rounded-md p-1 mr-2 flex-shrink-0 ${isPremium ? 'bg-yellow-200' : 'bg-blue-100'}`}>
+                        {!isPremium ? (
+                          <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500" />
+                        ) : (
+                          <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold text-xs sm:text-sm ${isPremium ? 'text-yellow-800' : 'text-blue-600'}`}>
+                          {!isPremium ? "Upgrade Available" : "Gold Upgrade Available"}
+                        </h3>
+                        <p className={`text-xs mb-2 sm:mb-3 mt-0.5 ${isPremium ? 'text-yellow-700' : 'text-blue-600'}`}>
+                          {!isPremium 
+                            ? "Unlock unlimited contract analysis and advanced features" 
+                            : "Get unlimited AI chat and advanced contract modifications"
+                          }
+                        </p>
+                        <div className="flex gap-2">
+                          {!isPremium && (
+                            <Button 
+                              className="bg-blue-500 hover:bg-blue-600 text-xs px-2 sm:px-3 py-0.5 sm:py-1 h-auto text-white"
+                              onClick={() => handleUpgrade("premium")}
+                            >
+                              <Zap className="h-3 w-3 mr-1" />
+                              Premium
+                            </Button>
+                          )}
+                          <Button 
+                            className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-xs px-2 sm:px-3 py-0.5 sm:py-1 h-auto text-white shadow-md"
+                            onClick={() => handleUpgrade("gold")}
+                          >
+                            <Crown className="h-3 w-3 mr-1" />
+                            Gold
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Danger Zone */}
                 <div className="border-l-4 border-red-500 bg-red-50 p-3 sm:p-4 rounded-sm">
                   <div className="flex items-start">

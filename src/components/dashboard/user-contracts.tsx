@@ -332,6 +332,16 @@ export default function UserContracts() {
     }
   }
 
+  // Helper function to get remaining contracts
+  const getRemainingContracts = () => {
+    if (!userStats || userPlan !== "basic") return 0
+    return Math.max(0, userStats.contractLimit - userStats.contractCount)
+  }
+
+  // Check if user is approaching limit (1 contract remaining)
+  const isApproachingLimit =
+    userStats && userPlan === "basic" ? userStats.contractCount === userStats.contractLimit - 1 : false
+
   // Contract type colors mapping
   const contractTypeColors: { [key: string]: { bg: string; text: string; hoverBg: string; chartColor: string } } = {
     Employment: {
@@ -1010,6 +1020,18 @@ export default function UserContracts() {
         )}
 
         {!isPremium && !isGold && <UpgradeDialog />}
+
+        {/* Add the limit warning alert before the contracts dashboard heading */}
+        {isApproachingLimit && userPlan === "basic" && (
+          <Alert className="mb-4 bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800 text-sm font-medium">Free Plan Limit Warning</AlertTitle>
+            <AlertDescription className="text-amber-700 text-xs">
+              You have {getRemainingContracts()} analysis remaining in your free plan. Upgrade for unlimited
+              analyses.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">

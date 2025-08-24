@@ -312,64 +312,80 @@ export default function ContractAnalysisResults({
   );
 
   // Ask AI button rendering based on plan status
-  const renderAskAIButton = () => {
-    if (isGold) {
-      // Gold users get full AI chat functionality
-      return (
+ const renderAskAIButton = () => {
+  if (isGold) {
+    // Gold users get full AI chat functionality
+    return (
+      <Button
+        className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm whitespace-nowrap"
+        onClick={handleOpenChatModal}
+      >
+        Ask AI (Gold)
+      </Button>
+    );
+  } else if (isPremium) {
+    // Premium users get basic AI chat
+    return (
+      <Button
+        className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-nowrap"
+        onClick={handleOpenChatModal}
+      >
+        Ask AI
+      </Button>
+    );
+  } else {
+    // Basic users see upgrade prompt (Premium or Gold)
+    return (
+     <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
+  <DialogTrigger asChild>
+    <Button
+      className="bg-blue-600 hover:bg-blue-700 text-white opacity-90 text-xs sm:text-sm whitespace-nowrap"
+      onClick={() => setIsPremiumDialogOpen(true)}
+    >
+      Ask AI
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-md max-w-[90vw] p-4 sm:p-6">
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+        <Lock className="h-4 w-4 sm:h-5 sm:w-5" /> AI Feature Locked
+      </DialogTitle>
+      <DialogDescription className="text-sm">
+        Upgrade to{" "}
+        <span className="font-semibold text-blue-600">Premium</span> or{" "}
+        <span className="font-semibold text-yellow-600">Gold</span> to use Ask AI.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
+      <DialogClose asChild>
         <Button
-          className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm whitespace-nowrap"
-          onClick={handleOpenChatModal}
+          variant="outline"
+          className="text-xs sm:text-sm w-full sm:w-auto"
         >
-          Ask AI (Gold)
+          Cancel
         </Button>
-      );
-    } else if (isPremium) {
-      // Premium users get basic AI chat
-      return (
-        <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-nowrap"
-          onClick={handleOpenChatModal}
-        >
-          Ask AI
-        </Button>
-      );
-    } else {
-      // Basic users see upgrade prompt
-      return (
-        <Dialog open={isPremiumDialogOpen} onOpenChange={setIsPremiumDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white opacity-90 text-xs sm:text-sm whitespace-nowrap"
-              onClick={() => setIsPremiumDialogOpen(true)}
-            >
-              Ask AI
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md max-w-[90vw] p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Lock className="h-4 w-4 sm:h-5 sm:w-5" /> Premium Feature
-              </DialogTitle>
-              <DialogDescription className="text-sm">
-                Upgrade to premium to use this feature.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2 mt-4">
-              <DialogClose asChild>
-                <Button variant="outline" className="text-xs sm:text-sm">Cancel</Button>
-              </DialogClose>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
-                onClick={() => handleUpgrade("premium")}
-              >
-                Upgrade to Premium
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      );
-    }
-  };
+      </DialogClose>
+      <Button
+        className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm w-full sm:w-auto"
+        onClick={() => handleUpgrade("premium")}
+      >
+        Upgrade to Premium
+      </Button>
+      <Button
+        className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm w-full sm:w-auto"
+        onClick={() => handleUpgrade("gold")}
+      >
+        Upgrade to Gold
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+    );
+  }
+};
+
 
   // Gold-specific features section
   const GoldFeaturesSection = () => {
@@ -409,80 +425,7 @@ export default function ContractAnalysisResults({
     );
   };
 
-  // Free Plan Limit Upgrade Dialog
-  const UpgradeDialog = () => (
-    <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Free Plan Limit Reached</DialogTitle>
-          <DialogDescription className="text-sm text-gray-500 mt-2">
-            You've used all {userStats?.contractLimit || 2} contracts allowed on the free plan. 
-            Choose your upgrade path:
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-blue-50">
-              <h4 className="font-semibold text-blue-800 mb-2">Premium Plan</h4>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Unlimited contract analysis</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Full contract details</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Basic AI assistant</span>
-                </div>
-              </div>
-              <Button 
-                onClick={() => handleUpgrade("premium")} 
-                className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Upgrade to Premium
-              </Button>
-            </div>
 
-            <div className="border rounded-lg p-4 bg-yellow-50">
-              <h4 className="font-semibold text-yellow-800 mb-2">Gold Plan (Recommended)</h4>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Everything in Premium</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Advanced AI chat</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Contract modification</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">24/7 priority support</span>
-                </div>
-              </div>
-              <Button 
-                onClick={() => handleUpgrade("gold")} 
-                className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
-              >
-                Upgrade to Gold
-              </Button>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
-            Maybe Later
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   // Show loading state while subscription status or stats are being loaded
   if ((isSubscriptionLoading && externalIsPremium === undefined) || (isStatsLoading && !isPremium)) {
@@ -513,8 +456,7 @@ export default function ContractAnalysisResults({
         </Alert>
       )}
 
-      {/* Render the upgrade dialog */}
-      <UpgradeDialog />
+    
       
       {/* Gold Features Section - only show for Gold users */}
       <GoldFeaturesSection />
@@ -595,25 +537,25 @@ export default function ContractAnalysisResults({
         <TabsList className="bg-gray-100 p-0.5 sm:p-1 rounded-lg flex space-x-0.5 sm:space-x-1 w-full overflow-x-auto">
           <TabsTrigger
             value="summary"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'summary' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'summary' ? 'bg-blue-500 shadow-sm text-gray-900' : 'text-gray-900'}`}
           >
             <span className="font-medium">Summary</span>
           </TabsTrigger>
           <TabsTrigger
             value="risks"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'risks' ? 'bg-blue-500 text-white' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'risks' ? 'bg-blue-500 text-gray-900' : 'text-gray-900'}`}
           >
             <span className="font-medium">Risks</span>
           </TabsTrigger>
           <TabsTrigger
             value="opportunities"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'opportunities' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'opportunities' ? 'bg-blue-500 shadow-sm text-gray-900' : 'text-gray-900'}`}
           >
             <span className="font-medium">Opportunities</span>
           </TabsTrigger>
           <TabsTrigger
             value="details"
-            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'details' ? 'bg-blue-500 shadow-sm text-white' : 'text-gray-900'}`}
+            className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'details' ? 'bg-blue-500 shadow-sm text-gray-900' : 'text-gray-900'}`}
             disabled={!isPremium}
           >
             <span className="font-medium whitespace-nowrap">
@@ -623,7 +565,7 @@ export default function ContractAnalysisResults({
           {isGold && (
             <TabsTrigger
               value="advanced"
-              className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'advanced' ? 'bg-yellow-500 shadow-sm text-white' : 'text-gray-900'}`}
+              className={`rounded flex-1 py-1 sm:py-2 text-xs sm:text-sm ${activeTab === 'advanced' ? 'bg-yellow-500 shadow-sm text-gray-900' : 'text-gray-900'}`}
             >
               <span className="font-medium whitespace-nowrap">👑 Advanced</span>
             </TabsTrigger>

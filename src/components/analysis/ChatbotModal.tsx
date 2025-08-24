@@ -1,5 +1,6 @@
 "use client";
 
+import React, { JSX } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,39 +17,146 @@ interface ChatbotModalProps {
   onClose: () => void;
   geminiApiKey: string | undefined;
   context: string;
-  userPlan: "basic" | "premium" | "gold"; // Add user plan prop
+  userPlan: "basic" | "premium" | "gold";
 }
+
+interface ChatMessage {
+  type: "user" | "ai";
+  message: string;
+  recommendations?: string[];
+  timestamp?: Date;
+}
+
+// Component for formatting AI responses with proper structure
+const FormattedMessage = ({ message, userPlan }: { message: string; userPlan: string }): JSX.Element => {
+  // Function to format the message with proper structure
+  const formatMessage = (text: string): JSX.Element[] => {
+    // First, let's handle the text line by line for better control
+    const lines = text.split('\n');
+    const formattedElements: JSX.Element[] = [];
+    
+    let currentIndex = 0;
+    
+    lines.forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines
+      if (!trimmedLine) return;
+      
+      // Handle triple asterisk headers (***text***)
+      if (trimmedLine.match(/^\*\*\*.*\*\*\*$/)) {
+        const headerText = trimmedLine.replace(/^\*\*\*|\*\*\*$/g, '');
+        formattedElements.push(
+          <div key={currentIndex++} className={`font-bold mt-4 mb-2 first:mt-0 ${
+            userPlan === 'gold' ? 'text-yellow-800' : 
+            userPlan === 'premium' ? 'text-blue-800' : 'text-gray-800'
+          }`}>
+            {headerText}
+          </div>
+        );
+        return;
+      }
+      
+      // Handle bullet points starting with • followed by **text**
+      if (trimmedLine.startsWith('•')) {
+        // Remove the bullet and get the rest
+        const content = trimmedLine.substring(1).trim();
+        
+        // Check if the content has **text** pattern
+        if (content.match(/^\*\*.*\*\*/)) {
+          const parts = content.split(/(\*\*[^*]+\*\*)/);
+          formattedElements.push(
+            <div key={currentIndex++} className="ml-4 mb-2 flex items-start">
+              <span className={`mr-3 mt-1 flex-shrink-0 ${
+                userPlan === 'gold' ? 'text-yellow-600' : 
+                userPlan === 'premium' ? 'text-blue-600' : 'text-gray-600'
+              }`}>•</span>
+              <div>
+                {parts.map((part, partIndex) => {
+                  if (part.startsWith('**') && part.endsWith('**')) {
+                    const boldText = part.replace(/^\*\*|\*\*$/g, '');
+                    return (
+                      <span key={partIndex} className="font-semibold text-gray-900">
+                        {boldText}
+                      </span>
+                    );
+                  }
+                  return <span key={partIndex}>{part}</span>;
+                })}
+              </div>
+            </div>
+          );
+        } else {
+          // Regular bullet point
+          formattedElements.push(
+            <div key={currentIndex++} className="ml-4 mb-2 flex items-start">
+              <span className={`mr-3 mt-1 flex-shrink-0 ${
+                userPlan === 'gold' ? 'text-yellow-600' : 
+                userPlan === 'premium' ? 'text-blue-600' : 'text-gray-600'
+              }`}>•</span>
+              <span>{content}</span>
+            </div>
+          );
+        }
+        return;
+      }
+      
+      // Handle double asterisk bold text (**text**)
+      if (trimmedLine.includes('**')) {
+        const parts = trimmedLine.split(/(\*\*[^*]+\*\*)/);
+        formattedElements.push(
+          <div key={currentIndex++} className="mb-2">
+            {parts.map((part, partIndex) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                const boldText = part.replace(/^\*\*|\*\*$/g, '');
+                return (
+                  <span key={partIndex} className="font-semibold text-gray-900">
+                    {boldText}
+                  </span>
+                );
+              }
+              return <span key={partIndex}>{part}</span>;
+            })}
+          </div>
+        );
+        return;
+      }
+      
+      // Handle numbered lists
+      if (/^\d+\./.test(trimmedLine)) {
+        formattedElements.push(
+          <div key={currentIndex++} className="ml-4 mb-2">
+            {trimmedLine}
+          </div>
+        );
+        return;
+      }
+      
+      // Regular paragraphs
+      formattedElements.push(
+        <div key={currentIndex++} className="mb-2">
+          {trimmedLine}
+        </div>
+      );
+    });
+
+    return formattedElements;
+  };
+
+  return <div>{formatMessage(message)}</div>;
+};
 
 const ChatbotModal: React.FC<ChatbotModalProps> = ({
   open,
   onClose,
   geminiApiKey,
   context,
-  userPlan = "basic", // Default to basic plan
+  userPlan = "basic",
 }) => {
-  const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState<Array<{
-    type: "user" | "ai";
-    message: string;
-    recommendations?: string[];
-  }>>([
-    {
-      type: "ai",
-      message: getWelcomeMessage(userPlan),
-      recommendations: getInitialRecommendations(userPlan),
-    },
-  ]);
-  const [isThinking, setIsThinking] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
-
-  // Ref for auto-scrolling
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   // Plan limits
   const MESSAGE_LIMITS = {
     basic: 5,
-    premium: 50,
+    premium: 15, // Changed from 50 to 15
     gold: Infinity
   };
 
@@ -78,9 +186,11 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
       case "premium":
         return [
           "Explain key terms",
-          "Identify risks",
-          "Review obligations",
-          "Suggest improvements"
+          "Identify main risks",
+          "Review obligations", 
+          "Suggest improvements",
+          "Check compliance issues",
+          "Clarify payment terms"
         ];
       default:
         return [
@@ -90,6 +200,22 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
         ];
     }
   }
+
+  const [message, setMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
+    {
+      type: "ai",
+      message: getWelcomeMessage(userPlan),
+      recommendations: getInitialRecommendations(userPlan),
+      timestamp: new Date(),
+    },
+  ]);
+  const [isThinking, setIsThinking] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+
+  // Refs for auto-scrolling and input focus
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input field when modal opens
   useEffect(() => {
@@ -113,6 +239,7 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
           type: "ai",
           message: getWelcomeMessage(userPlan),
           recommendations: getInitialRecommendations(userPlan),
+          timestamp: new Date(),
         },
       ]);
       setMessageCount(0);
@@ -126,7 +253,12 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
       if (!geminiApiKey) {
         setChatHistory((prev) => [
           ...prev,
-          { type: "ai", message: "Error: Gemini API key not provided.", recommendations: [] },
+          { 
+            type: "ai", 
+            message: "Error: Gemini API key not provided.", 
+            recommendations: [],
+            timestamp: new Date()
+          },
         ]);
       }
       return;
@@ -139,13 +271,19 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
         { 
           type: "ai", 
           message: `You've reached your ${userPlan} plan limit of ${MESSAGE_LIMITS[userPlan]} messages. Upgrade to Gold for unlimited AI conversations!`, 
-          recommendations: [] 
+          recommendations: ["Upgrade to Gold"],
+          timestamp: new Date()
         },
       ]);
       return;
     }
 
-    setChatHistory((prev) => [...prev, { type: "user", message: inputMessage }]);
+    // Add user message
+    setChatHistory((prev) => [...prev, { 
+      type: "user", 
+      message: inputMessage,
+      timestamp: new Date()
+    }]);
     setMessage("");
     setIsThinking(true);
     setMessageCount(prev => prev + 1);
@@ -176,38 +314,55 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
       const textResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (textResponse) {
+        // Clean the response text
         const cleanedText = textResponse
           .replace(/```(?:json)?/g, "")
           .replace(/```/g, "")
           .trim();
 
+        let aiMessage: ChatMessage;
+
         try {
+          // Try to parse as JSON
           const parsed = JSON.parse(cleanedText);
-          if (parsed.answer) {
-            setChatHistory((prev) => [
-              ...prev,
-              {
-                type: "ai",
-                message: parsed.answer,
-                recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-              },
-            ]);
-          }
+          
+          aiMessage = {
+            type: "ai",
+            message: parsed.answer || parsed.message || cleanedText,
+            recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+            timestamp: new Date()
+          };
         } catch (e) {
-          setChatHistory((prev) => [
-            ...prev,
-            { type: "ai", message: cleanedText, recommendations: [] },
-          ]);
+          // If JSON parsing fails, use the cleaned text as is
+          aiMessage = {
+            type: "ai",
+            message: cleanedText,
+            recommendations: [],
+            timestamp: new Date()
+          };
         }
+
+        setChatHistory((prev) => [...prev, aiMessage]);
+
       } else if (data?.error?.message) {
         setChatHistory((prev) => [
           ...prev,
-          { type: "ai", message: `Error: ${data.error.message}`, recommendations: [] },
+          { 
+            type: "ai", 
+            message: `Error: ${data.error.message}`, 
+            recommendations: ["Try again", "Ask differently"],
+            timestamp: new Date()
+          },
         ]);
       } else {
         setChatHistory((prev) => [
           ...prev,
-          { type: "ai", message: "Error: Could not retrieve response.", recommendations: [] },
+          { 
+            type: "ai", 
+            message: "Error: Could not retrieve response.", 
+            recommendations: ["Try again", "Check connection"],
+            timestamp: new Date()
+          },
         ]);
       }
     } catch (error: any) {
@@ -217,7 +372,8 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
         {
           type: "ai",
           message: `Error: ${error.message || "Something went wrong."}`,
-          recommendations: [],
+          recommendations: ["Try again", "Check connection"],
+          timestamp: new Date()
         },
       ]);
     } finally {
@@ -229,7 +385,7 @@ const ChatbotModal: React.FC<ChatbotModalProps> = ({
   function generatePrompt(inputMessage: string, context: string, plan: string): string {
     const basePrompt = `You are a helpful legal assistant for contract review. Respond in the following JSON format:
 {
-  "answer": "string",
+  "answer": "string - your detailed response here",
   "recommendations": ["short question", "short question", ...]
 }
 
@@ -237,6 +393,7 @@ Guidelines:
 - Keep recommended questions short (max 8 words).
 - Be concise and use plain language.
 - Only include relevant, logical follow-up questions.
+- Provide clear, actionable answers.
 
 Context:
 ${context}
@@ -246,38 +403,98 @@ User: ${inputMessage}`;
     if (plan === "gold") {
       return `${basePrompt}
 
-As a GOLD assistant, provide:
-- Comprehensive analysis with legal precedents
-- Specific clause recommendations and modifications
-- Risk assessment with impact levels
-- Industry best practices comparison
-- Actionable next steps
+As a GOLD assistant, provide comprehensive analysis with proper formatting:
 
-You have access to advanced features including contract modification suggestions and detailed legal analysis.`;
+**Direct Answer:** [Answer the specific question in detail]
+
+**Comprehensive Analysis:**
+• [Analysis point 1]
+• [Analysis point 2]
+• [Analysis point 3]
+• [Analysis point 4]
+
+**Legal Precedents:** [If applicable]
+• [Precedent 1]
+• [Precedent 2]
+
+**Risk Assessment with Impact Levels:**
+• **High Risk:** [Description]
+• **Medium Risk:** [Description]
+• **Low Risk:** [Description]
+
+**Detailed Recommendations:**
+• [Specific recommendation 1]
+• [Specific recommendation 2]
+• [Specific recommendation 3]
+• [Specific recommendation 4]
+
+**Industry Best Practices:**
+• [Practice 1]
+• [Practice 2]
+
+**Actionable Next Steps:**
+• [Step 1]
+• [Step 2]
+• [Step 3]
+
+You have unlimited scope - provide detailed legal analysis, precedents, industry comparisons, and specific clause modifications as needed.`;
     }
 
     if (plan === "premium") {
       return `${basePrompt}
 
-As a PREMIUM assistant, provide:
-- Detailed contract analysis
-- Risk identification with explanations
-- Key terms clarification
-- Basic improvement recommendations
-- Professional insights
+As a PREMIUM assistant, provide SPECIFIC answers to the user's question. Do NOT give generic responses. 
 
-Focus on thorough explanations and practical advice.`;
+Structure your response as follows:
+**Direct Answer:** [Answer the specific question asked]
+
+**Key Points:**
+• [Point 1]
+• [Point 2] 
+• [Point 3]
+
+**Risk/Considerations:**
+• [Risk 1]
+• [Risk 2]
+
+**Recommendations:**
+• [Recommendation 1]
+• [Recommendation 2]
+• [Recommendation 3]
+
+Guidelines:
+- Answer the EXACT question asked, not generic contract analysis
+- Use bullet points and proper formatting
+- Keep each section concise (2-3 points maximum)
+- Focus on actionable insights
+- Limit total response to 250-350 words
+- If asked about obligations, focus ONLY on obligations
+- If asked about risks, focus ONLY on risks
+- If asked about specific terms, explain ONLY those terms`;
     }
 
     return `${basePrompt}
 
-As a BASIC assistant, provide:
-- Simple, clear answers
-- Basic contract information
-- General guidance only
-- Keep responses concise and accessible
+As a BASIC assistant, provide simple answers with basic formatting:
 
-Limit technical jargon and focus on easy-to-understand explanations.`;
+**Answer:** [Simple, direct answer to the question]
+
+**Key Points:**
+• [Point 1 - simple explanation]
+• [Point 2 - simple explanation]
+
+**What This Means:**
+[Explain in simple terms what this means for the user]
+
+**Basic Suggestion:**
+[One simple recommendation]
+
+Guidelines:
+- Use simple language anyone can understand
+- Answer the specific question asked
+- Keep total response under 150 words
+- No legal jargon or complex analysis
+- Focus on practical, easy-to-understand explanations`;
   }
 
   // Get plan badge
@@ -314,36 +531,53 @@ Limit technical jargon and focus on easy-to-understand explanations.`;
     return `${remaining} of ${limit} remaining`;
   };
 
+  // Format timestamp
+  const formatTime = (timestamp?: Date) => {
+    if (!timestamp) return "";
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent 
-        className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-3xl max-h-[90vh] p-0 rounded-lg overflow-hidden flex flex-col"
+        className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-4xl max-h-[90vh] p-0 rounded-lg overflow-hidden flex flex-col"
         style={{
           width: "95vw", 
           height: "90vh",
-          maxWidth: "850px"
+          maxWidth: "900px"
         }}
       >
-        <DialogHeader className="p-3 sm:p-4 border-b flex flex-row items-center justify-between space-y-0">
-          <div className="flex flex-col space-y-2">
-            <DialogTitle className="text-base sm:text-lg font-medium">
-              Contract AI Assistant
-            </DialogTitle>
-            <div className="flex items-center gap-2">
-              {getPlanBadge()}
-              <span className="text-xs text-gray-500">
-                Messages: {getRemainingMessages()}
-              </span>
+        <DialogHeader className={`p-4 border-b ${
+          userPlan === "gold" 
+            ? "bg-gradient-to-r from-yellow-50 to-amber-50" 
+            : userPlan === "premium" 
+            ? "bg-gradient-to-r from-blue-50 to-indigo-50"
+            : "bg-gray-50"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-lg font-semibold mb-1">
+                Contract AI Assistant
+              </DialogTitle>
+              <div className="flex items-center gap-3">
+                {getPlanBadge()}
+                <span className={`text-sm font-medium ${
+                  userPlan === "gold" ? "text-yellow-700" :
+                  userPlan === "premium" ? "text-blue-700" : "text-gray-700"
+                }`}>
+                  Messages: {getRemainingMessages()}
+                </span>
+              </div>
             </div>
           </div>
         </DialogHeader>
 
         {/* Usage warning for non-Gold users approaching limit */}
         {userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan] - 2 && messageCount < MESSAGE_LIMITS[userPlan] && (
-          <div className="px-3 sm:px-4 py-2 bg-amber-50 border-b border-amber-200">
+          <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
             <div className="flex items-center gap-2 text-amber-800">
               <Lock className="h-4 w-4" />
-              <span className="text-xs sm:text-sm">
+              <span className="text-sm">
                 {MESSAGE_LIMITS[userPlan] - messageCount} messages remaining. Upgrade to Gold for unlimited access!
               </span>
             </div>
@@ -351,68 +585,98 @@ Limit technical jargon and focus on easy-to-understand explanations.`;
         )}
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
           {chatHistory.map((item, index) => (
             <div
               key={index}
               className={`flex ${item.type === "user" ? "justify-end" : "justify-start"} w-full`}
             >
-              <div
-                className={`rounded-lg p-2 sm:p-3 text-xs sm:text-sm whitespace-pre-wrap break-words ${
-                  item.type === "user"
-                    ? "bg-blue-500 text-white ml-auto rounded-tr-none"
-                    : "bg-gray-100 text-gray-800 mr-auto rounded-tl-none"
-                }`}
-                style={{ maxWidth: "85%" }}
-              >
-                {item.message}
+              <div className={`max-w-[85%] ${item.type === "user" ? "ml-12" : "mr-12"}`}>
+                <div
+                  className={`rounded-lg p-3 shadow-sm ${
+                    item.type === "user"
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-tr-sm"
+                      : "bg-white text-gray-800 border border-gray-200 rounded-tl-sm"
+                  }`}
+                >
+                  {/* Message content with proper formatting */}
+                  <div className="text-sm leading-relaxed">
+                    <FormattedMessage message={item.message} userPlan={userPlan} />
+                  </div>
+                  
+                  {/* Timestamp */}
+                  <div className={`text-xs mt-2 opacity-70 ${
+                    item.type === "user" ? "text-blue-100" : "text-gray-500"
+                  }`}>
+                    {formatTime(item.timestamp)}
+                  </div>
 
-                {/* Recommendations with plan-specific styling */}
-                {item.type === "ai" &&
-                  item.recommendations &&
-                  item.recommendations.length > 0 && (
-                    <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
-                      <div className="text-xs sm:text-sm font-medium mb-2">
-                        {userPlan === "gold" ? "Advanced suggestions:" : "Follow-up suggestions:"}
+                  {/* Recommendations with plan-specific styling */}
+                  {item.type === "ai" &&
+                    item.recommendations &&
+                    item.recommendations.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="text-sm font-medium mb-2 flex items-center gap-1">
+                          {userPlan === "gold" && <Crown className="h-3 w-3 text-yellow-600" />}
+                          {userPlan === "premium" && <Zap className="h-3 w-3 text-blue-600" />}
+                          <span className={
+                            userPlan === "gold" 
+                              ? "text-yellow-700" 
+                              : userPlan === "premium" 
+                              ? "text-blue-700" 
+                              : "text-gray-700"
+                          }>
+                            {userPlan === "gold" ? "Advanced suggestions:" : "Follow-up suggestions:"}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {item.recommendations.map((question, idx) => (
+                            <Button
+                              key={idx}
+                              variant="outline"
+                              size="sm"
+                              className={`${
+                                userPlan === "gold" 
+                                  ? "bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100 text-yellow-800 border-yellow-200"
+                                  : userPlan === "premium"
+                                  ? "bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200"
+                                  : "bg-white hover:bg-gray-50 text-gray-800 border-gray-200"
+                              } text-xs py-1 h-auto rounded-full transition-all duration-200 hover:scale-105`}
+                              onClick={() => handleSendMessage(question)}
+                              disabled={userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan]}
+                            >
+                              {question}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 sm:gap-2">
-                        {item.recommendations.map((question, idx) => (
-                          <Button
-                            key={idx}
-                            variant="outline"
-                            size="sm"
-                            className={`${
-                              userPlan === "gold" 
-                                ? "bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100 text-yellow-800 border-yellow-200"
-                                : userPlan === "premium"
-                                ? "bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200"
-                                : "bg-white hover:bg-gray-50 text-gray-800 border-gray-200"
-                            } text-xs sm:text-sm py-1 h-auto max-w-full truncate`}
-                            onClick={() => handleSendMessage(question)}
-                            disabled={userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan]}
-                          >
-                            {question}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                </div>
               </div>
             </div>
           ))}
+
+          {/* Thinking indicator */}
           {isThinking && (
             <div className="flex justify-start w-full">
-              <div
-                className="rounded-lg p-2 sm:p-3 text-xs sm:text-sm bg-gray-100 text-gray-800 mr-auto rounded-tl-none"
-                style={{ maxWidth: "85%" }}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-0"></div>
-                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-150"></div>
-                  <div className="h-2 w-2 bg-blue-500 rounded-full animate-bounce delay-300"></div>
-                  <span className="ml-1 text-gray-500">
-                    {userPlan === "gold" ? "Analyzing..." : userPlan === "premium" ? "Processing..." : "Thinking..."}
-                  </span>
+              <div className="max-w-[85%] mr-12">
+                <div className="rounded-lg p-3 bg-white border border-gray-200 rounded-tl-sm shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className={`h-2 w-2 ${
+                        userPlan === "gold" ? "bg-yellow-500" : "bg-blue-500"
+                      } rounded-full animate-bounce delay-0`}></div>
+                      <div className={`h-2 w-2 ${
+                        userPlan === "gold" ? "bg-yellow-500" : "bg-blue-500"
+                      } rounded-full animate-bounce delay-150`}></div>
+                      <div className={`h-2 w-2 ${
+                        userPlan === "gold" ? "bg-yellow-500" : "bg-blue-500"
+                      } rounded-full animate-bounce delay-300`}></div>
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {userPlan === "gold" ? "Analyzing..." : userPlan === "premium" ? "Processing..." : "Thinking..."}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -422,44 +686,64 @@ Limit technical jargon and focus on easy-to-understand explanations.`;
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <div className="p-3 sm:p-4 border-t">
-          <div className="flex items-center gap-2 w-full">
-            <input
-              ref={inputRef}
-              type="text"
-              className="flex-1 h-9 sm:h-10 rounded-full border border-gray-300 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder={
-                userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan]
-                  ? "Message limit reached - Upgrade to Gold"
-                  : "Ask your question..."
-              }
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              disabled={isThinking || (userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan])}
-            />
+        {/* Input section */}
+        <div className="p-4 border-t bg-white">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                className={`w-full h-12 rounded-full border-2 px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
+                  userPlan === "gold"
+                    ? "border-yellow-200 focus:border-yellow-400 focus:ring-yellow-100"
+                    : "border-gray-200 focus:border-blue-400 focus:ring-blue-100"
+                }`}
+                placeholder={
+                  userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan]
+                    ? "Message limit reached - Upgrade to Gold"
+                    : userPlan === "gold"
+                    ? "Ask your Gold AI assistant anything about your contract..."
+                    : "Ask your question..."
+                }
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+                disabled={isThinking || (userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan])}
+              />
+            </div>
             <Button
               onClick={() => handleSendMessage()}
-              size="sm"
-              disabled={isThinking || (userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan])}
-              className={`rounded-full h-9 sm:h-10 px-3 sm:px-4 ${
+              size="lg"
+              disabled={isThinking || !message.trim() || (userPlan !== "gold" && messageCount >= MESSAGE_LIMITS[userPlan])}
+              className={`rounded-full h-12 px-6 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 ${
                 userPlan === "gold"
-                  ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-                  : "bg-blue-500 hover:bg-blue-600"
-              } text-white`}
+                  ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white"
+                  : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              }`}
             >
-              <Send className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Send</span>
+              <Send className="h-4 w-4 mr-2" />
+              <span>Send</span>
             </Button>
           </div>
           
-          {/* Plan upgrade hint for basic users */}
-          {userPlan === "basic" && messageCount >= 3 && (
-            <div className="mt-2 text-xs text-gray-500 text-center">
-              💡 Upgrade to Premium or Gold for more advanced AI features and unlimited conversations
-            </div>
-          )}
+          {/* Plan-specific hint */}
+          <div className="mt-2 text-xs text-center">
+            {userPlan === "gold" && (
+              <span className="text-yellow-700">
+                ✨ Gold AI can analyze risks, suggest modifications, and provide detailed contract insights
+              </span>
+            )}
+            {userPlan === "premium" && (
+              <span className="text-blue-700">
+                ⭐ Premium AI provides detailed contract analysis and professional insights
+              </span>
+            )}
+            {userPlan === "basic" && messageCount >= 3 && (
+              <span className="text-gray-500">
+                💡 Upgrade to Premium or Gold for more advanced AI features and unlimited conversations
+              </span>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

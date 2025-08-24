@@ -259,7 +259,7 @@ export default function PricingPage() {
                   <span>CURRENT PLAN</span>
                 </div>
               ) : (
-                <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
                   <Crown className="h-3 w-3" />
                   <span>PREMIUM+</span>
                 </div>
@@ -314,7 +314,7 @@ export default function PricingPage() {
                   <Button 
                     className={`w-full ${isGold 
                       ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-md"}`} 
+                      : "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-md"}`} 
                     onClick={isGold ? () => window.location.href = "/dashboard" : () => handleUpgrade("gold")}
                     variant="default"
                     disabled={isGold}

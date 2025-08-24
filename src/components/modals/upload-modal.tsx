@@ -11,10 +11,10 @@ import {
 import { api } from "@/lib/api"
 import { useContractStore } from "@/store/zustand"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { useCallback, useState, useEffect } from "react"
+import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { AnimatePresence, motion } from "framer-motion"
-import { FileText, Sparkles, Trash, AlertCircle, CheckCircle, Brain, Lock, Check } from "lucide-react"
+import { FileText, Sparkles, Trash, AlertCircle, CheckCircle, Brain } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "../ui/button"
 import { useRouter } from "next/navigation"
@@ -48,9 +48,7 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [analysisId, setAnalysisId] = useState<string | null>(null)
-  const [step, setStep] = useState<"upload" | "detecting" | "confirm" | "processing" | "done" | "limit-reached">(
-    "upload",
-  )
+  const [step, setStep] = useState<"upload" | "detecting" | "confirm" | "processing" | "done">("upload")
   const [tempKey, setTempKey] = useState<string | null>(null)
 
   const { data: contractStats, refetch: refetchStats } = useQuery<ContractStats>({
@@ -65,91 +63,43 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
   const isApproachingLimit =
     contractStats && userPlan === "basic" ? contractStats.contractCount === contractStats.contractLimit - 1 : false
 
-  const hasReachedLimit =
-    contractStats && userPlan === "basic" ? contractStats.contractCount >= contractStats.contractLimit : false
-
-  const { mutate: detectContractType, isError: isDetectError } = useMutation({
+  // 🟢 detect contract type
+  const { mutate: detectContractType } = useMutation({
     mutationFn: async ({ file }: { file: File }) => {
       const formData = new FormData()
       formData.append("contract", file)
-
-      try {
-        const response = await api.post<{ detectedType: string; tempKey: string }>("/contracts/detect-type", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        return response.data
-      } catch (error: any) {
-        if (error.response?.data?.limitReached) {
-          setStep("limit-reached")
-          throw new Error("Free plan limit reached")
-        }
-        console.error("API Error:", error.response?.data || error.message)
-        throw new Error(error.response?.data?.message || "Failed to detect contract type")
-      }
+      const response = await api.post<{ detectedType: string; tempKey: string }>("/contracts/detect-type", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      return response.data
     },
     onSuccess: (data) => {
       setDetectedType(data.detectedType)
       setTempKey(data.tempKey)
       setStep("confirm")
     },
-    onError: (error: Error) => {
-      if (step !== "limit-reached") {
-        console.error("Failed to detect contract type:", error)
-        setError(error.message || "Failed to detect contract type. Please try again.")
-        setStep("upload")
-      }
+    onError: (error: any) => {
+      console.error("Failed to detect contract type:", error)
+      setError(error.message || "Failed to detect contract type. Please try again.")
+      setStep("upload")
     },
   })
 
-  const {
-    mutate: uploadFile,
-    isPending: isProcessing,
-    isError: isUploadError,
-  } = useMutation({
+  // 🟢 analyze contract
+  const { mutate: uploadFile, isPending: isProcessing } = useMutation({
     mutationFn: async ({ file, contractType }: { file: File; contractType: string }) => {
-      let data
-
       if (tempKey) {
-        data = {
-          contractType,
-          tempKey,
-        }
-
-        try {
-          const response = await api.post("/contracts/analyze", data)
-          return response.data
-        } catch (error: any) {
-          if (error.response?.data?.limitReached) {
-            setStep("limit-reached")
-            throw new Error("Free plan limit reached")
-          }
-          console.error("API Error:", error.response?.data || error.message)
-          throw new Error(error.response?.data?.message || "Failed to analyze contract")
-        }
+        const data = { contractType, tempKey }
+        const response = await api.post("/contracts/analyze", data)
+        return response.data
       } else {
         const formData = new FormData()
         formData.append("contract", file)
         formData.append("contractType", contractType)
-
-        try {
-          const response = await api.post("/contracts/analyze", formData, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          })
-
-          console.log(response.data)
-          return response.data
-        } catch (error: any) {
-          if (error.response?.data?.limitReached) {
-            setStep("limit-reached")
-            throw new Error("Free plan limit reached")
-          }
-          console.error("API Error:", error.response?.data || error.message)
-          throw new Error(error.response?.data?.message || "Failed to analyze contract")
-        }
+        const response = await api.post("/contracts/analyze", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        return response.data
       }
     },
     onSuccess: (data) => {
@@ -158,21 +108,14 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
       refetchStats()
       setStep("done")
     },
-    onError: (error: Error) => {
-      if (step !== "limit-reached") {
-        console.error("Upload error:", error)
-        setError(error.message || "Failed to upload and analyze contract")
-        setStep("upload")
-      }
+    onError: (error: any) => {
+      console.error("Upload error:", error)
+      setError(error.message || "Failed to upload and analyze contract")
+      setStep("upload")
     },
   })
 
-  useEffect(() => {
-    if (isOpen && hasReachedLimit && userPlan === "basic") {
-      setStep("limit-reached")
-    }
-  }, [isOpen, hasReachedLimit, userPlan])
-
+  // 🟢 dropzone
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       setFiles(acceptedFiles)
@@ -185,20 +128,13 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-    },
+    accept: { "application/pdf": [".pdf"] },
     maxFiles: 1,
     multiple: false,
   })
 
   const handleFileUpload = () => {
     if (files.length > 0) {
-      if (hasReachedLimit && userPlan === "basic") {
-        setStep("limit-reached")
-        return
-      }
-
       setError(null)
       setStep("detecting")
       detectContractType({ file: files[0] })
@@ -207,11 +143,6 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
 
   const handleAnalyzeContract = () => {
     if (files.length > 0 && detectedType) {
-      if (hasReachedLimit && userPlan === "basic") {
-        setStep("limit-reached")
-        return
-      }
-
       setError(null)
       setStep("processing")
       uploadFile({ file: files[0], contractType: detectedType })
@@ -237,33 +168,12 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
     handleClose()
   }
 
-  const handleUpgrade = async (targetPlan: "premium" | "gold" = "premium") => {
-    try {
-      const response = await api.get(`/payments/create-checkout-session?plan=${targetPlan}`)
-      console.log("response", response)
-      const stripe = await stripePromise
-      await stripe?.redirectToCheckout({
-        sessionId: response.data.sessionId,
-      })
-    } catch (error) {
-      console.error(error)
-      try {
-        const response = await api.get("/payments/create-checkout-session")
-        const stripe = await stripePromise
-        await stripe?.redirectToCheckout({
-          sessionId: response.data.sessionId,
-        })
-      } catch (fallbackError) {
-        console.error("Upgrade failed:", fallbackError)
-      }
-    }
-  }
-
   const getRemainingContracts = () => {
     if (!contractStats || userPlan !== "basic") return 0
     return Math.max(0, contractStats.contractLimit - contractStats.contractCount)
   }
 
+  // 🟢 UI
   const renderContent = () => {
     switch (step) {
       case "upload":
@@ -304,13 +214,12 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
                 <motion.div>
                   <FileText className="mx-auto size-16 text-blue-600" />
                 </motion.div>
-                <p className="mt-4 text-sm text-gray-600">
-                  Drag &apos;n&apos; drop some files here, or click to select files.
-                </p>
+                <p className="mt-4 text-sm text-gray-600">Drag &apos;n&apos; drop some files here, or click to select.</p>
                 <p className="bg-yellow-500/50 border border-yellow-100 text-black p-2 rounded mt-2">
                   Note: Only PDF files are accepted.
                 </p>
               </div>
+
               {files.length > 0 && (
                 <div className="mt-4 bg-blue-200 border border-gray-500 text-gray-900 p-2 rounded flex items-center justify-between">
                   <span>
@@ -322,12 +231,9 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
                   </Button>
                 </div>
               )}
+
               {files.length > 0 && (
-                <Button
-                  className="mt-4 w-full mb-4 bg-blue-600 hover:bg-blue-700"
-                  onClick={handleFileUpload}
-                  disabled={isProcessing}
-                >
+                <Button className="mt-4 w-full mb-4 bg-blue-600 hover:bg-blue-700" onClick={handleFileUpload}>
                   <Sparkles className="mr-2 size-4" />
                   Analyze Contract With AI
                 </Button>
@@ -337,250 +243,60 @@ export function UploadModal({ isOpen, onClose }: IUploadModalProps) {
         )
       case "detecting":
         return (
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <div className="py-8 text-center">
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "linear",
-                  }}
-                  className="mb-4"
-                >
-                  <Brain className="mx-auto size-16 text-blue-700" />
-                </motion.div>
-
-                <h3 className="text-lg font-medium">Detecting Contract Type...</h3>
-                <p className="text-sm text-gray-500 mt-2">
-                  Our AI is analyzing your document to determine the contract type.
-                </p>
-
-                <div className="relative w-48 h-2 mt-6 mx-auto bg-blue-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="absolute left-0 top-0 h-full bg-blue-600 rounded-full"
-                    initial={{ x: "-100%" }}
-                    animate={{ x: "100%" }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                    }}
-                    style={{ width: "50%" }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div className="py-8 text-center">
+            <Brain className="mx-auto size-16 text-blue-700 mb-4 animate-spin" />
+            <h3 className="text-lg font-medium">Detecting Contract Type...</h3>
+            <p className="text-sm text-gray-500 mt-2">Analyzing your document to determine the contract type.</p>
+          </div>
         )
       case "confirm":
         return (
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <div className="py-4">
-                <DialogHeader>
-                  <DialogTitle>Contract Type Detected</DialogTitle>
-                  <DialogDescription>We&apos;ve detected the following contract type:</DialogDescription>
-                </DialogHeader>
+          <div className="py-4">
+            <DialogHeader>
+              <DialogTitle>Contract Type Detected</DialogTitle>
+              <DialogDescription>We&apos;ve detected the following contract type:</DialogDescription>
+            </DialogHeader>
 
-                <div className="my-6 p-4 bg-blue-500/10 border border-blue-500 rounded-lg">
-                  <h3 className="font-bold text-lg">{detectedType}</h3>
-                </div>
-                <p className="text-sm text-gray-600 mt-2 mb-4">Would you like to proceed with the analysis?</p>
+            <div className="my-6 p-4 bg-blue-500/10 border border-blue-500 rounded-lg">
+              <h3 className="font-bold text-lg">{detectedType}</h3>
+            </div>
 
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setStep("upload")}>
-                    Back
-                  </Button>
-                  <Button onClick={handleAnalyzeContract} className="bg-blue-600 hover:bg-blue-700">
-                    <Sparkles className="mr-2 size-4" />
-                    Analyze Now
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setStep("upload")}>
+                Back
+              </Button>
+              <Button onClick={handleAnalyzeContract} className="bg-blue-600 hover:bg-blue-700">
+                <Sparkles className="mr-2 size-4" />
+                Analyze Now
+              </Button>
+            </div>
+          </div>
         )
       case "processing":
         return (
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex flex-col items-center justify-center py-8"
-            >
-              <div className="py-8 text-center">
-                <motion.div
-                  animate={{
-                    rotate: [0, 360],
-                    scale: [1, 1.2, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: "linear",
-                  }}
-                  className="mb-4"
-                >
-                  <Brain className="mx-auto size-16 text-blue-700" />
-                </motion.div>
-
-                <h3 className="text-lg font-medium">Analyzing your contract...</h3>
-                <p className="text-sm text-gray-500 mt-2">
-                  Our AI is analyzing the details of your <span className="font-semibold">{detectedType}</span>{" "}
-                  contract.
-                </p>
-
-                <div className="relative w-48 h-2 mt-6 mx-auto bg-blue-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="absolute left-0 top-0 h-full bg-blue-600 rounded-full"
-                    initial={{ x: "-100%" }}
-                    animate={{ x: "100%" }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                    }}
-                    style={{ width: "50%" }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+          <div className="py-8 text-center">
+            <Brain className="mx-auto size-16 text-blue-700 mb-4 animate-spin" />
+            <h3 className="text-lg font-medium">Analyzing your contract...</h3>
+            <p className="text-sm text-gray-500 mt-2">Our AI is analyzing the details of your {detectedType} contract.</p>
+          </div>
         )
       case "done":
         return (
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex items-center justify-center"
-            >
-              <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 text-center relative">
-                <div className="border-2 border-dashed border-blue-500 rounded-lg p-6 mb-6">
-                  <CheckCircle className="mx-auto size-14 text-blue-600 mb-3" />
-                  <h3 className="text-xl font-semibold text-blue-700">Success!</h3>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Your contract has been analyzed successfully by our AI. You can now view the results.
-                  </p>
-                </div>
+          <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 text-center relative">
+            <CheckCircle className="mx-auto size-14 text-blue-600 mb-3" />
+            <h3 className="text-xl font-semibold text-blue-700">Success!</h3>
+            <p className="text-sm text-gray-600 mt-2">Your contract has been analyzed successfully.</p>
 
-                <div className="flex flex-col gap-3">
-                  <Button
-                    onClick={handleViewResults}
-                    className="bg-blue-600 hover:bg-blue-700 text-white w-full text-sm"
-                  >
-                    <Sparkles className="mr-2 size-4" />
-                    View AI Analysis Results
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleClose}
-                    className="w-full text-sm border-blue-300 bg-transparent"
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        )
-      case "limit-reached":
-        return (
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="flex items-center justify-center"
-            >
-              <div className="py-4">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-xl">
-                    <Lock className="h-5 w-5 text-blue-600" /> Free Plan Limit Reached
-                  </DialogTitle>
-                  <DialogDescription className="text-sm text-gray-500 mt-2">
-                    You&apos;ve used all {contractStats ? contractStats.contractLimit : 2} contracts allowed on the free
-                    plan. Choose your upgrade:
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="my-6 space-y-4">
-                  <div className="border rounded-lg p-4 bg-blue-50">
-                    <h4 className="font-semibold text-blue-800 mb-2">Premium Plan</h4>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Unlimited contract analyses</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Full contract details and recommendations</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Basic AI assistant</span>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => handleUpgrade("premium")}
-                      className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Upgrade to Premium
-                    </Button>
-                  </div>
-
-                  <div className="border rounded-lg p-4 bg-yellow-50">
-                    <h4 className="font-semibold text-yellow-800 mb-2">Gold Plan (Recommended)</h4>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Everything in Premium</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Advanced AI chat</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">Contract modification</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">24/7 priority support</span>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => handleUpgrade("gold")}
-                      className="w-full mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
-                    >
-                      Upgrade to Gold
-                    </Button>
-                  </div>
-                </div>
-
-                <DialogFooter className="mt-6 gap-3">
-                  <Button variant="outline" onClick={handleClose}>
-                    Maybe Later
-                  </Button>
-                </DialogFooter>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+            <div className="flex flex-col gap-3 mt-6">
+              <Button onClick={handleViewResults} className="bg-blue-600 hover:bg-blue-700 text-white w-full text-sm">
+                <Sparkles className="mr-2 size-4" />
+                View AI Analysis Results
+              </Button>
+              <Button variant="outline" onClick={handleClose} className="w-full text-sm border-blue-300 bg-transparent">
+                Close
+              </Button>
+            </div>
+          </div>
         )
       default:
         return null
