@@ -1,3 +1,4 @@
+// src/components/analysis/GoldChatModal.tsx
 "use client";
 
 import { useState, useEffect, useRef, JSX } from "react";
@@ -9,7 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { Send, Crown } from "lucide-react";
+import { Send, Crown, AlertCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 // Component for formatting AI responses with proper structure
 const FormattedMessage = ({ message }: { message: string }) => {
@@ -26,6 +28,17 @@ const FormattedMessage = ({ message }: { message: string }) => {
       
       // Skip empty lines
       if (!trimmedLine) return;
+      
+      // Handle main headers with ###
+      if (trimmedLine.startsWith('###')) {
+        const headerText = trimmedLine.replace(/^###\s*/, '');
+        formattedElements.push(
+          <div key={currentIndex++} className="font-bold text-lg mt-6 mb-3 first:mt-2 border-b pb-2 text-yellow-800 border-yellow-200">
+            {headerText}
+          </div>
+        );
+        return;
+      }
       
       // Handle triple asterisk headers (***text***)
       if (trimmedLine.match(/^\*\*\*.*\*\*\*$/)) {
@@ -47,7 +60,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
         if (content.match(/^\*\*.*\*\*/)) {
           const parts = content.split(/(\*\*[^*]+\*\*)/);
           formattedElements.push(
-            <div key={currentIndex++} className="ml-4 mb-2 flex items-start">
+            <div key={currentIndex++} className="ml-4 mb-3 flex items-start">
               <span className="text-yellow-600 mr-3 mt-1 flex-shrink-0">•</span>
               <div>
                 {parts.map((part, partIndex) => {
@@ -67,7 +80,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
         } else {
           // Regular bullet point
           formattedElements.push(
-            <div key={currentIndex++} className="ml-4 mb-2 flex items-start">
+            <div key={currentIndex++} className="ml-4 mb-3 flex items-start">
               <span className="text-yellow-600 mr-3 mt-1 flex-shrink-0">•</span>
               <span>{content}</span>
             </div>
@@ -80,7 +93,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
       if (trimmedLine.includes('**')) {
         const parts = trimmedLine.split(/(\*\*[^*]+\*\*)/);
         formattedElements.push(
-          <div key={currentIndex++} className="mb-2">
+          <div key={currentIndex++} className="mb-3 leading-relaxed">
             {parts.map((part, partIndex) => {
               if (part.startsWith('**') && part.endsWith('**')) {
                 const boldText = part.replace(/^\*\*|\*\*$/g, '');
@@ -100,7 +113,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
       // Handle numbered lists
       if (/^\d+\./.test(trimmedLine)) {
         formattedElements.push(
-          <div key={currentIndex++} className="ml-4 mb-2">
+          <div key={currentIndex++} className="ml-4 mb-2 leading-relaxed">
             {trimmedLine}
           </div>
         );
@@ -109,7 +122,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
       
       // Regular paragraphs
       formattedElements.push(
-        <div key={currentIndex++} className="mb-2">
+        <div key={currentIndex++} className="mb-3 leading-relaxed">
           {trimmedLine}
         </div>
       );
@@ -118,7 +131,7 @@ const FormattedMessage = ({ message }: { message: string }) => {
     return formattedElements;
   };
 
-  return <div>{formatMessage(message)}</div>;
+  return <div className="text-sm">{formatMessage(message)}</div>;
 };
 
 interface GoldChatModalProps {
@@ -136,21 +149,9 @@ interface ChatMessage {
 
 export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps) {
   const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    {
-      type: "ai",
-      message: "👑 Welcome to Gold AI Assistant! I can help you analyze, modify, and understand your contract in detail. What would you like to know?",
-      recommendations: [
-        "Analyze key risks",
-        "Suggest modifications", 
-        "Review clauses",
-        "Compare standards",
-        "Export summary"
-      ],
-      timestamp: new Date()
-    },
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Refs for auto-scrolling and input focus
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -170,25 +171,37 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isThinking]);
 
-  // Reset chat when modal opens
+  // Initialize chat when modal opens
   useEffect(() => {
-    if (open) {
-      setChatHistory([
-        {
-          type: "ai",
-          message: "👑 Welcome to Gold AI Assistant! I can help you analyze, modify, and understand your contract in detail. What would you like to know?",
-          recommendations: [
-            "Analyze key risks",
-            "Suggest modifications", 
-            "Review clauses",
-            "Compare standards",
-            "Export summary"
-          ],
-          timestamp: new Date()
-        },
-      ]);
+    if (open && !isInitialized) {
+      initializeChat();
+      setIsInitialized(true);
+    } else if (!open) {
+      // Reset when modal closes
+      setIsInitialized(false);
+      setChatHistory([]);
+      setMessage("");
     }
-  }, [open]);
+  }, [open, contractId, isInitialized]);
+
+  // Initialize chat with welcome message
+  const initializeChat = async () => {
+    // Set welcome message immediately
+    setChatHistory([
+      {
+        type: "ai",
+        message: "👑 **Welcome to Gold AI Assistant!**\n\nI can help you analyze, modify, and understand your contract in detail. I have access to your complete contract and can provide:\n\n• **Advanced Risk Analysis** - Deep dive into potential issues\n• **Contract Modifications** - Suggest specific improvements\n• **Clause Analysis** - Detailed examination of terms\n• **Legal Insights** - Professional recommendations\n• **Custom Recommendations** - Tailored to your needs\n\nWhat would you like to explore about your contract?",
+        recommendations: [
+          "Analyze key risks",
+          "Suggest modifications", 
+          "Review payment terms",
+          "Check compliance issues",
+          "Compare to industry standards"
+        ],
+        timestamp: new Date()
+      }
+    ]);
+  };
 
   const handleSendMessage = async (customMessage?: string) => {
     const inputMessage = customMessage || message;
@@ -207,55 +220,31 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
     try {
       const response = await api.post("/contracts/chat", {
         contractId,
-        message: inputMessage,
-        chatHistory: chatHistory.map(msg => ({
-          role: msg.type === "user" ? "user" : "assistant",
-          content: msg.message
-        }))
+        message: inputMessage
       });
 
-      // Parse response - handle both string and structured responses
+      // Handle the response
       let aiResponse: ChatMessage;
       
-      if (typeof response.data.response === 'string') {
-        // Clean and format the response
+      if (response.data && response.data.response) {
         let responseText = response.data.response;
         
-        // Try to parse as JSON first
-        try {
-          const cleanedResponse = responseText
-            .replace(/```(?:json)?/g, "")
-            .replace(/```/g, "")
-            .trim();
-          
-          const parsed = JSON.parse(cleanedResponse);
-          
-          aiResponse = {
-            type: "ai",
-            message: parsed.answer || parsed.message || responseText,
-            recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-            timestamp: new Date()
-          };
-        } catch (e) {
-          // If JSON parsing fails, clean up the text formatting
-          responseText = responseText
-            .replace(/\*\*\*/g, '\n***') // Add line breaks before headers
-            .replace(/\n\s*\n/g, '\n') // Clean up multiple line breaks
-            .trim();
-          
-          aiResponse = {
-            type: "ai",
-            message: responseText,
-            recommendations: [],
-            timestamp: new Date()
-          };
-        }
-      } else {
-        // Handle structured response
+        // Clean up the response text
+        responseText = responseText
+          .replace(/\n\s*\n/g, '\n') // Clean up multiple line breaks
+          .trim();
+        
         aiResponse = {
           type: "ai",
-          message: response.data.response?.message || response.data.response?.answer || "I received your message but couldn't generate a proper response.",
-          recommendations: Array.isArray(response.data.response?.recommendations) ? response.data.response.recommendations : [],
+          message: responseText,
+          recommendations: generateRecommendations(inputMessage),
+          timestamp: new Date()
+        };
+      } else {
+        aiResponse = {
+          type: "ai",
+          message: "I received your message but couldn't generate a proper response. Please try rephrasing your question.",
+          recommendations: ["Try again", "Ask something else", "Rephrase question"],
           timestamp: new Date()
         };
       }
@@ -265,17 +254,58 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
     } catch (error: any) {
       console.error("Error sending chat message:", error);
       
-      const errorMessage = error?.response?.data?.message || error?.message || "Sorry, I encountered an error. Please try again.";
+      let errorMessage = "Sorry, I encountered an error while processing your request. Please try again.";
+      
+      if (error?.response?.status === 403) {
+        errorMessage = "Gold subscription required for this feature. Please upgrade to continue using the AI assistant.";
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
       
       setChatHistory(prev => [...prev, {
         type: "ai",
         message: errorMessage,
-        recommendations: ["Try again", "Ask something else", "Check connection"],
+        recommendations: error?.response?.status === 403 ? [] : ["Try again", "Rephrase question", "Contact support"],
         timestamp: new Date()
       }]);
+
+      // Show toast for better user experience
+      if (error?.response?.status === 403) {
+        toast.error("Gold subscription required");
+      } else {
+        toast.error("Failed to send message");
+      }
     } finally {
       setIsThinking(false);
     }
+  };
+
+  // Generate contextual recommendations based on user input
+  const generateRecommendations = (userMessage: string): string[] => {
+    const message = userMessage.toLowerCase();
+    
+    if (message.includes('risk') || message.includes('danger') || message.includes('problem')) {
+      return ["Analyze specific risks", "Mitigation strategies", "Legal implications"];
+    } else if (message.includes('modify') || message.includes('change') || message.includes('edit')) {
+      return ["Suggest modifications", "Review alternatives", "Impact analysis"];
+    } else if (message.includes('payment') || message.includes('money') || message.includes('cost')) {
+      return ["Review payment terms", "Cost analysis", "Financial risks"];
+    } else if (message.includes('clause') || message.includes('term') || message.includes('section')) {
+      return ["Explain clauses", "Compare terms", "Legal interpretation"];
+    } else if (message.includes('compliance') || message.includes('legal') || message.includes('law')) {
+      return ["Check compliance", "Legal requirements", "Regulatory issues"];
+    }
+    
+    // Default recommendations
+    return [
+      "Analyze risks",
+      "Review clauses", 
+      "Suggest improvements",
+      "Check compliance",
+      "Compare standards"
+    ];
   };
 
   const formatTime = (timestamp?: Date) => {
@@ -326,7 +356,7 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
                   }`}
                 >
                   {/* Message content with proper formatting */}
-                  <div className="text-sm leading-relaxed">
+                  <div className="leading-relaxed">
                     <FormattedMessage message={item.message} />
                   </div>
                   
