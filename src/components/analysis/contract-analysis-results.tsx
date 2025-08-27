@@ -47,6 +47,7 @@ export default function ContractAnalysisResults({
   const [isPremiumDialogOpen, setIsPremiumDialogOpen] = useState(false)
   const [showLimitWarning, setShowLimitWarning] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
+  const [contractContent, setContractContent] = useState("")
 
   // Get user info and subscription status
   const { user } = useCurrentUser()
@@ -82,6 +83,31 @@ export default function ContractAnalysisResults({
     enabled: !!user,
   })
 
+  // Fetch contract content for AI analysis
+  useEffect(() => {
+    const fetchContractContent = async () => {
+      if (contractId) {
+        try {
+          const response = await api.get(`/contracts/contract/${contractId}`)
+          // Try different possible property names for the contract content
+          const content = response.data.originalContent || 
+                         response.data.content || 
+                         response.data.contractText || 
+                         response.data.text || 
+                         response.data.rawContent ||
+                         ""
+          setContractContent(content)
+          console.log("Contract content fetched for AI:", content.length, "characters")
+        } catch (error) {
+          console.error("Error fetching contract content:", error)
+          setContractContent("Contract content could not be retrieved for AI analysis")
+        }
+      }
+    }
+
+    fetchContractContent()
+  }, [contractId])
+
   useEffect(() => {
     if (userStats && !isPremium) {
       const { contractCount, contractLimit } = userStats
@@ -100,6 +126,54 @@ export default function ContractAnalysisResults({
     handleRefreshChart()
   }, [userStats, isPremium])
 
+  // Function to get context for AI analysis
+  const getContextForAI = () => {
+    // First try to get the original contract content
+    if (analysisResults?.originalContent) {
+      return analysisResults.originalContent
+    }
+    
+    // Then try the fetched contract content
+    if (contractContent && contractContent.length > 50) {
+      return contractContent
+    }
+    
+    // Build context from analysis results if no raw content available
+    const analysisContext = `
+Contract Analysis Summary:
+Contract Type: ${analysisResults.contractType || 'Unknown'}
+Overall Score: ${analysisResults.overallScore}%
+Assessment: ${Number(analysisResults.overallScore) > 70 ? 'Favorable' : Number(analysisResults.overallScore) > 50 ? 'Average' : 'Unfavorable'}
+
+Executive Summary: ${analysisResults.summary || 'No summary available'}
+
+Key Risks Identified:
+${analysisResults.risks?.map(r => `- ${r.risk}: ${r.explanation || 'No details'} (Severity: ${r.severity || 'Unknown'})`).join('\n') || 'None identified'}
+
+Key Opportunities:
+${analysisResults.opportunities?.map(o => `- ${o.opportunity}: ${o.explanation || 'No details'} (Impact: ${o.impact || 'Unknown'})`).join('\n') || 'None identified'}
+
+Key Clauses:
+${analysisResults.keyClauses?.join(', ') || 'None specified'}
+
+Financial Terms: ${analysisResults.financialTerms?.description || 'Not specified'}
+
+Contract Duration: ${analysisResults.contractDuration || 'Not specified'}
+
+Termination Conditions: ${analysisResults.terminationConditions || 'Not specified'}
+
+Legal Compliance: ${analysisResults.legalCompliance || 'No compliance information available'}
+
+Recommendations:
+${analysisResults.recommendations?.map((rec, i) => `${i + 1}. ${rec}`).join('\n') || 'None provided'}
+
+Negotiation Points:
+${analysisResults.negotiationPoints?.join(', ') || 'None provided'}
+    `.trim()
+    
+    return analysisContext
+  }
+
   // Check if the user has reached their free plan limit
   const handleRefreshChart = () => {
     setRefreshChart(true)
@@ -107,6 +181,17 @@ export default function ContractAnalysisResults({
   }
 
   const handleOpenChatModal = () => {
+    // Debug the context being passed
+    const context = getContextForAI()
+    console.log("Debug ChatbotModal Context:", {
+      originalContent: analysisResults?.originalContent?.length || 0,
+      fetchedContent: contractContent?.length || 0,
+      summary: analysisResults?.summary?.length || 0,
+      finalContext: context?.length || 0,
+      userPlan,
+      contractId
+    })
+
     if (isGold) {
       setIsGoldChatModalOpen(true)
     } else {
@@ -794,61 +879,18 @@ export default function ContractAnalysisResults({
         )}
       </Tabs>
 
-      {/* Upgrade Dialog for Free Plan Users */}
-      {showUpgradeDialog && !isPremium && (
-        <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-          <DialogContent className="sm:max-w-md max-w-[90vw] p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
-                Free Plan Limit Reached
-              </DialogTitle>
-              <DialogDescription className="text-sm">
-                You've used all {userStats?.contractLimit || 2} of your free contract analyses. Upgrade to continue
-                analyzing contracts with unlimited access.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 mt-4">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <h4 className="font-medium text-blue-800 text-sm mb-1">Premium Plan</h4>
-                <p className="text-xs text-blue-700">Unlimited analyses, detailed insights, and recommendations</p>
-              </div>
-              <div className="bg-yellow-50 p-3 rounded-lg">
-                <h4 className="font-medium text-yellow-800 text-sm mb-1">Gold Plan</h4>
-                <p className="text-xs text-yellow-700">Everything in Premium plus AI chat and contract modification</p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-              <DialogClose asChild>
-                <Button variant="outline" className="text-xs sm:text-sm w-full sm:w-auto bg-transparent">
-                  Maybe Later
-                </Button>
-              </DialogClose>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm w-full sm:w-auto"
-                onClick={() => handleUpgrade("premium")}
-              >
-                Upgrade to Premium
-              </Button>
-              <Button
-                className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm w-full sm:w-auto"
-                onClick={() => handleUpgrade("gold")}
-              >
-                Upgrade to Gold
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Chat Modals */}
       {isChatModalOpen && !isGold && (
         <ChatbotModal
           open={isChatModalOpen}
           onClose={handleCloseChatModal}
-          geminiApiKey={geminiApiKey} context={""} userPlan={"basic"}        />
+          geminiApiKey={geminiApiKey}
+          context={getContextForAI()}
+          userPlan={userPlan as "basic" | "premium" | "gold"}
+          contractTitle={`Contract ${contractId.slice(-6)}`}
+          contractType={analysisResults.contractType || "Contract"}
+        />
       )}
 
       {isGoldChatModalOpen && isGold && (

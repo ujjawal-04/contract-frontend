@@ -28,6 +28,7 @@ export interface Risk {
   }
   
   export interface ContractAnalysis {
+    originalContent: string;
     _id: string;
     userId: string;
     projectId: string;

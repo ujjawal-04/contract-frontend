@@ -28,25 +28,25 @@ export default function PrivacyPolicy() {
     },
   }
 
-  // Grid background animation
+  // Grid background animation - fixed type issue
   const gridVariants = {
     animate: {
       backgroundPosition: ["0px 0px", "100px 100px"],
       transition: {
         duration: 20,
-        ease: "linear",
-        repeat: Number.POSITIVE_INFINITY,
+        ease: "linear" as const,
+        repeat: Infinity,
       },
     },
   }
 
-  // Section animation
+  // Section animation - fixed type issue
   const sectionVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.7, ease: "easeOut" }
+      transition: { duration: 0.7, ease: "easeOut" as const }
     }
   }
 
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
                     "linear-gradient(45deg, #06b6d4, #4f46e5)",
                   ],
                 }}
-                transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                transition={{ duration: 5, repeat: Infinity, repeatType: "reverse" }}
                 style={{
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",

@@ -60,18 +60,6 @@ export default function Features() {
     },
   }
 
-  // Grid background animation
-  const gridVariants = {
-    animate: {
-      backgroundPosition: ["0px 0px", "100px 100px"],
-      transition: {
-        duration: 20,
-        ease: "linear",
-        repeat: Number.POSITIVE_INFINITY,
-      },
-    },
-  }
-
   // Main features array with title, description and icon name
   const mainFeatures = [
     {
@@ -196,8 +184,14 @@ export default function Features() {
         {/* Grid background */}
         <motion.div
           className="absolute inset-0 z-0 opacity-10"
-          variants={gridVariants}
-          animate="animate"
+          animate={{
+            backgroundPosition: ["0px 0px", "100px 100px"],
+          }}
+          transition={{
+            duration: 20,
+            ease: "linear",
+            repeat: Infinity,
+          }}
           style={{
             backgroundImage:
               "linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)",
@@ -265,7 +259,7 @@ export default function Features() {
                     "linear-gradient(45deg, #06b6d4, #4f46e5)",
                   ],
                 }}
-                transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                transition={{ duration: 5, repeat: Infinity, repeatType: "reverse" }}
                 style={{
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -325,7 +319,7 @@ export default function Features() {
                       }}
                       transition={{
                         duration: 4,
-                        repeat: Number.POSITIVE_INFINITY,
+                        repeat: Infinity,
                         repeatType: "loop",
                       }}
                       style={{
@@ -352,7 +346,7 @@ export default function Features() {
                         }}
                         transition={{
                           duration: 2,
-                          repeat: Number.POSITIVE_INFINITY,
+                          repeat: Infinity,
                           repeatType: "reverse",
                         }}
                       >
@@ -463,7 +457,7 @@ export default function Features() {
                     <motion.div
                       className="absolute inset-0 shadow-2xl border border-gray-500 opacity-0 z-10"
                       animate={{ opacity: [0, 0.5, 0] }}
-                      transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                      transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
                     />
                     <img
                       src={feature.image}
@@ -576,6 +570,74 @@ export default function Features() {
                 </CardContent>
               </Card>
             </motion.div>
+            
+            {/* Premium Plan */}
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            >
+              <Card className={`h-full border ${isPremium ? "border-green-200 bg-green-50 shadow-md" : "border-blue-200 bg-blue-50 shadow-sm"} rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-md relative`}>
+                {!isLoading && (isPremium ? (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold py-1 px-3 rounded-bl flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>CURRENT PLAN</span>
+                  </div>
+                ) : (
+                  <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-bl">
+                    RECOMMENDED
+                  </div>
+                ))}
+                
+                <CardHeader className="pt-8 pb-2">
+                  <CardTitle className="text-xl font-bold mb-1 flex items-center">
+                    Premium
+                    <span className="ml-2 text-yellow-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block">
+                        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z" />
+                      </svg>
+                    </span>
+                  </CardTitle>
+                  <p className="text-sm text-slate-600">For comprehensive contract analysis</p>
+                </CardHeader>
+                
+                <CardContent className="pb-8">
+                  <div className="flex items-baseline mb-6">
+                    <span className="text-3xl font-bold">$20</span>
+                    <span className="text-slate-500 ml-1">/lifetime</span>
+                  </div>
+                  
+                  <ul className="space-y-4 mb-8">
+                    {premiumFeatures.map((feature, index) => (
+                      <li className="flex items-center" key={index}>
+                        <CheckCircle2 className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
+                        <span className="text-sm text-slate-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {isLoading ? (
+                    <div className="w-full py-2 flex justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
+                    <Button 
+                      className={`w-full ${isPremium 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "bg-blue-600 hover:bg-blue-700 text-white"}`} 
+                      onClick={isPremium ? () => window.location.href = "/dashboard" : handleUpgrade}
+                      variant="default"
+                      disabled={isPremium}
+                    >
+                      {isPremium ? "Current Plan" : "Upgrade Now"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
             
             {/* Premium Plan */}
             <motion.div 

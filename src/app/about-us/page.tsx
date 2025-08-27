@@ -40,18 +40,6 @@ export default function AboutUs() {
     },
   }
 
-  // Grid background animation
-  const gridVariants = {
-    animate: {
-      backgroundPosition: ["0px 0px", "100px 100px"],
-      transition: {
-        duration: 20,
-        ease: "linear",
-        repeat: Number.POSITIVE_INFINITY,
-      },
-    },
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header Section with Animated Grid Background */}
@@ -59,8 +47,14 @@ export default function AboutUs() {
         {/* Grid background */}
         <motion.div
           className="absolute inset-0 z-0 opacity-10"
-          variants={gridVariants}
-          animate="animate"
+          animate={{
+            backgroundPosition: ["0px 0px", "100px 100px"],
+          }}
+          transition={{
+            duration: 20,
+            ease: "linear",
+            repeat: Infinity,
+          }}
           style={{
             backgroundImage:
               "linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)",
@@ -139,7 +133,7 @@ export default function AboutUs() {
                     "linear-gradient(45deg, #06b6d4, #4f46e5)",
                   ],
                 }}
-                transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                transition={{ duration: 5, repeat: Infinity, repeatType: "reverse" }}
                 style={{
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -218,7 +212,7 @@ export default function AboutUs() {
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 opacity-0 z-10"
                 animate={{ opacity: [0, 0.5, 0] }}
-                transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
               />
               <img
                 src="/mission.jpg" 

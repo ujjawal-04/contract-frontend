@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useModalStore } from "@/store/zustand";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 export function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useCurrentUser();
@@ -42,19 +42,22 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 export default function AuthCard() {
   const { openModal } = useModalStore();
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
+  const containerVariants: Variants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20 
+    },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
+        ease: [0.25, 0.46, 0.45, 0.94] // easeOut cubic-bezier
       }
     }
   };
 
-  const buttonVariants = {
+  const buttonVariants: Variants = {
     hover: { scale: 1.03 },
     tap: { scale: 0.98 }
   };

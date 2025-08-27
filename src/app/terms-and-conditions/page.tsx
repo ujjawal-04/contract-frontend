@@ -28,25 +28,25 @@ export default function TermsAndConditions() {
     },
   }
 
-  // Grid background animation
+  // Grid background animation - fixed type issue
   const gridVariants = {
     animate: {
       backgroundPosition: ["0px 0px", "100px 100px"],
       transition: {
         duration: 20,
-        ease: "linear",
-        repeat: Number.POSITIVE_INFINITY,
+        ease: "linear" as const,
+        repeat: Infinity,
       },
     },
   }
 
-  // Section animation
+  // Section animation - fixed type issue
   const sectionVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.7, ease: "easeOut" }
+      transition: { duration: 0.7, ease: "easeOut" as const }
     }
   }
 
@@ -160,7 +160,7 @@ export default function TermsAndConditions() {
                     "linear-gradient(45deg, #06b6d4, #4f46e5)",
                   ],
                 }}
-                transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }}
+                transition={{ duration: 5, repeat: Infinity, repeatType: "reverse" }}
                 style={{
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -355,6 +355,39 @@ export default function TermsAndConditions() {
             </motion.div>
 
             <motion.div 
+              id="payment-terms"
+              className="mb-12 pb-4 border-b border-slate-100"
+              variants={sectionVariants}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-full bg-indigo-50">
+                  <CreditCard className="h-5 w-5 text-indigo-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 m-0">6. Payment Terms</h2>
+              </div>
+              <p className="mb-4 text-slate-600">
+                Some features of our Service may require payment. By purchasing a subscription or paid features, you agree to pay all applicable fees.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <div className="font-semibold text-slate-800 mb-2">Subscription Fees</div>
+                  <p className="text-slate-600 text-sm">Subscription fees are billed in advance on a monthly or annual basis and are non-refundable except as expressly set forth in these Terms or required by law.</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <div className="font-semibold text-slate-800 mb-2">Payment Processing</div>
+                  <p className="text-slate-600 text-sm">Payments are processed through secure third-party payment processors. We do not store your full credit card information on our servers.</p>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500 mb-6">
+                <p className="text-slate-700 mb-0">
+                  You may cancel your subscription at any time through your account settings. Cancellation will be effective at the end of your current billing period.
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div 
               id="limitations"
               className="mb-12 pb-4 border-b border-slate-100"
               variants={sectionVariants}
@@ -363,7 +396,7 @@ export default function TermsAndConditions() {
                 <div className="p-2 rounded-full bg-indigo-50">
                   <AlertCircle className="h-5 w-5 text-indigo-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 m-0">6. Limitations of Liability</h2>
+                <h2 className="text-2xl font-bold text-slate-800 m-0">7. Limitations of Liability</h2>
               </div>
               <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-8 rounded-lg mb-6 border border-indigo-100 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-200 opacity-20 rounded-full translate-x-16 -translate-y-16"></div>
@@ -408,7 +441,7 @@ export default function TermsAndConditions() {
                 <div className="p-2 rounded-full bg-indigo-50">
                   <FileText className="h-5 w-5 text-indigo-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 m-0">7. Termination</h2>
+                <h2 className="text-2xl font-bold text-slate-800 m-0">8. Termination</h2>
               </div>
               <p className="mb-4 text-slate-600">
                 We may terminate or suspend your access to the Service immediately, without prior notice or liability, for any reason, including if you breach these Terms.
@@ -448,7 +481,7 @@ export default function TermsAndConditions() {
                 <div className="p-2 rounded-full bg-indigo-50">
                   <Mail className="h-5 w-5 text-indigo-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 m-0">8. Contact Us</h2>
+                <h2 className="text-2xl font-bold text-slate-800 m-0">9. Contact Us</h2>
               </div>
               <p className="mb-6 text-slate-600">
                 If you have any questions about these Terms and Conditions, please contact us at:
@@ -469,7 +502,7 @@ export default function TermsAndConditions() {
                   <div className="bg-white bg-opacity-70 p-4 rounded-lg shadow-sm">
                     <HelpCircle className="h-6 w-6 text-indigo-600 mb-2" />
                     <h4 className="font-medium text-slate-800 mb-1">Phone</h4>
-                    <a href="tel:+11234567890" className="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors">
+                    <a href="tel:+15555555555" className="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors">
                       +1 (555) 555-5555
                     </a>
                   </div>

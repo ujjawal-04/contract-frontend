@@ -207,7 +207,8 @@ export default function PricingPage() {
                 
                 <ul className="space-y-4 mb-8">
                   {[
-                    "Unlimited contract analysis",
+                    "Unlimited contract analysis ",
+                    "Chat with AI chatbot about your contract",
                     "10 potential risks identified",
                     "10 opportunities with impact levels",
                     "Comprehensive contract summary",
@@ -288,7 +289,7 @@ export default function PricingPage() {
                 
                 <ul className="space-y-3 mb-8 text-sm">
                   {[
-                    "Chat with AI chatbot about your contract",
+                    "Unlimited Chat with AI chatbot about your contract",
                     "15 potential risks identified",
                     "15 opportunities with impact levels",
                     "AI-powered contract modification",

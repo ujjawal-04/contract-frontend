@@ -138,7 +138,9 @@ export function ContractModificationPage({
   }
 
   const removeCustomModification = (index: number) => {
-    setCustomModifications((prev) => prev.filter((_, i) => i !== index))
+    if (customModifications.length > 1) {
+      setCustomModifications((prev) => prev.filter((_, i) => i !== index))
+    }
   }
 
   const updateCustomModification = (index: number, value: string) => {
@@ -187,7 +189,6 @@ export function ContractModificationPage({
     const allModifications = [
       ...selectedRecommendations,
       ...customModifications.filter((mod) => mod.trim()),
-      ...customRecommendations.filter((rec) => selectedRecommendations.includes(rec)),
     ]
 
     if (allModifications.length === 0) {
@@ -251,32 +252,39 @@ export function ContractModificationPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4 lg:mb-6">
-            {onBack && (
+      <div className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-b border-yellow-200/60 top-0 z-30 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-4 lg:py-6">
+          {onBack && (
+            <div className="mb-3 sm:mb-4">
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex items-center gap-2 hover:bg-yellow-100 self-start text-sm sm:text-base lg:text-2xl xl:text-3xl"
+                className="group flex items-center gap-2 hover:bg-yellow-100/70 px-2 sm:px-3 py-1.5 sm:py-2 transition-all duration-200 rounded-lg"
                 size="sm"
               >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Back to Analysis</span>
-                <span className="sm:hidden">Back</span>
+                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-200" />
+                <span className="text-sm font-medium">Back to Analysis</span>
               </Button>
-            )}
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <Crown className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-yellow-600 flex-shrink-0" />
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent leading-tight">
+            </div>
+          )}
+          
+          <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+            <div className="flex-shrink-0">
+              <div className="p-2 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl shadow-lg">
+                <Crown className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-white" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold bg-gradient-to-r from-yellow-700 via-amber-600 to-orange-600 bg-clip-text text-transparent leading-tight">
                 Contract Modification Suite
               </h1>
-              <p className="text-xs sm:text-sm lg:text-base text-yellow-700 mt-1 text-pretty">
-                Modify "{contractTitle}" ({contractType}) with AI-powered suggestions
+              <p className="text-sm sm:text-base lg:text-lg text-yellow-700/80 mt-1 font-medium">
+                Modify "{contractTitle}"
+              </p>
+              <p className="text-xs sm:text-sm text-yellow-600/70 mt-0.5">
+                Contract Type: {contractType}
               </p>
             </div>
           </div>
@@ -284,68 +292,74 @@ export function ContractModificationPage({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="sticky mt-4 top-[120px] sm:top-[140px] lg:top-[160px] bg-gray-50 pb-3 sm:pb-4 lg:pb-6 z-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-            <TabsList className="grid w-full grid-cols-3 bg-white p-1 rounded-lg shadow-sm border h-auto">
+          {/* Improved sticky tabs */}
+          <div className=" top-[120px] sm:top-[140px] lg:top-[160px] bg-gradient-to-br from-gray-50 to-gray-100 pb-4 sm:pb-6 z-20 -mx-3 sm:-mx-4 lg:-mx-6 xl:-mx-8 px-3 sm:px-4 lg:px-6 xl:px-8 border-b border-gray-200/50">
+            <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm p-1.5 rounded-xl shadow-md border border-gray-200/50 h-auto">
               <TabsTrigger
                 value="modify"
-                className="flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm lg:text-base px-1 sm:px-2 lg:px-3 max-w-full min-w-0 data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-100 data-[state=active]:to-yellow-100 data-[state=active]:text-amber-800 data-[state=active]:border-amber-200 transition-all duration-200"
+                className="flex items-center justify-center gap-2 py-2.5 sm:py-3 text-sm sm:text-base font-medium px-2 sm:px-4 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-100 data-[state=active]:to-yellow-100 data-[state=active]:text-amber-800 data-[state=active]:shadow-sm rounded-lg"
               >
-                <FileEdit className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 flex-shrink-0" />
-                <span className="font-medium truncate min-w-0">Modify</span>
+                <FileEdit className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Modify Contract</span>
+                <span className="sm:hidden">Modify</span>
               </TabsTrigger>
               <TabsTrigger
                 value="recommendations"
-                className="flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm lg:text-base px-1 sm:px-2 lg:px-3 max-w-full min-w-0 data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-100 data-[state=active]:to-yellow-100 data-[state=active]:text-amber-800 data-[state=active]:border-amber-200 transition-all duration-200"
+                className="flex items-center justify-center gap-2 py-2.5 sm:py-3 text-sm sm:text-base font-medium px-2 sm:px-4 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-100 data-[state=active]:to-indigo-100 data-[state=active]:text-blue-800 data-[state=active]:shadow-sm rounded-lg"
               >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 flex-shrink-0" />
-                <span className="font-medium truncate min-w-0">Custom</span>
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Custom Recommendations</span>
+                <span className="sm:hidden">Custom</span>
               </TabsTrigger>
               <TabsTrigger
                 value="history"
-                className="flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm lg:text-base px-1 sm:px-2 lg:px-3 max-w-full min-w-0 data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-100 data-[state=active]:to-yellow-100 data-[state=active]:text-amber-800 data-[state=active]:border-amber-200 transition-all duration-200"
+                className="flex items-center justify-center gap-2 py-2.5 sm:py-3 text-sm sm:text-base font-medium px-2 sm:px-4 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-100 data-[state=active]:to-violet-100 data-[state=active]:text-purple-800 data-[state=active]:shadow-sm rounded-lg"
               >
-                <History className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-purple-600 flex-shrink-0" />
-                <span className="font-medium truncate min-w-0">History</span>
+                <History className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">History</span>
+                <span className="sm:hidden">History</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="modify" className="mt-0 space-y-4 sm:space-y-6 lg:space-y-8">
+          <TabsContent value="modify" className="mt-0 space-y-6">
             {/* AI Recommendations Section */}
             {(recommendations.length > 0 || customRecommendations.length > 0) && (
-              <Card className="shadow-sm">
-                <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl xl:text-2xl">
-                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-600 flex-shrink-0" />
-                    <span className="text-balance">AI Recommendations</span>
+              <Card className="shadow-md border-0 bg-white/70 backdrop-blur-sm">
+                <CardHeader className="pb-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+                  <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span>AI Recommendations</span>
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm lg:text-base text-pretty">
+                  <CardDescription className="text-sm sm:text-base text-green-700/80">
                     Select AI-generated recommendations to apply to your contract
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2 sm:space-y-3 lg:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
+                <CardContent className="space-y-3 max-h-96 overflow-y-auto p-4 sm:p-6">
                   {/* Original recommendations */}
                   {recommendations.map((recommendation, index) => (
                     <div
                       key={`orig-${index}`}
-                      className="flex items-start space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 lg:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                      className="group flex items-start gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50/30 transition-all duration-200"
                     >
                       <Checkbox
                         id={`recommendation-${index}`}
                         checked={selectedRecommendations.includes(recommendation)}
                         onCheckedChange={() => toggleRecommendation(recommendation)}
-                        className="mt-0.5 sm:mt-1 flex-shrink-0"
+                        className="mt-1 flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <label
                           htmlFor={`recommendation-${index}`}
-                          className="text-xs sm:text-sm lg:text-base font-medium cursor-pointer block text-pretty leading-relaxed"
+                          className="text-sm sm:text-base font-medium cursor-pointer block leading-relaxed text-gray-800"
                         >
                           {recommendation}
                         </label>
-                        <Badge variant="secondary" className="mt-1 sm:mt-2 text-xs">
+                        <Badge variant="secondary" className="mt-2 text-xs bg-blue-100 text-blue-700">
                           AI Generated
                         </Badge>
                       </div>
@@ -356,22 +370,24 @@ export function ContractModificationPage({
                   {customRecommendations.map((recommendation, index) => (
                     <div
                       key={`custom-${index}`}
-                      className="flex items-start space-x-2 sm:space-x-3 lg:space-x-4 p-2 sm:p-3 lg:p-4 border rounded-lg hover:bg-gray-50 bg-yellow-50 border-yellow-200 transition-colors"
+                      className="group flex items-start gap-3 p-4 border-2 border-dashed border-yellow-300 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100 transition-all duration-200"
                     >
                       <Checkbox
                         id={`custom-recommendation-${index}`}
                         checked={selectedRecommendations.includes(recommendation)}
                         onCheckedChange={() => toggleRecommendation(recommendation)}
-                        className="mt-0.5 sm:mt-1 flex-shrink-0"
+                        className="mt-1 flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <label
                           htmlFor={`custom-recommendation-${index}`}
-                          className="text-xs sm:text-sm lg:text-base font-medium cursor-pointer block text-pretty leading-relaxed"
+                          className="text-sm sm:text-base font-medium cursor-pointer block leading-relaxed text-gray-800"
                         >
                           {recommendation}
                         </label>
-                        <Badge className="mt-1 sm:mt-2 bg-yellow-600 text-white text-xs">Custom Generated</Badge>
+                        <Badge className="mt-2 text-xs bg-gradient-to-r from-yellow-500 to-amber-500 text-white">
+                          Custom Generated
+                        </Badge>
                       </div>
                     </div>
                   ))}
@@ -380,21 +396,23 @@ export function ContractModificationPage({
             )}
 
             {/* Custom Modifications Section */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl xl:text-2xl">
-                  <FileEdit className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600 flex-shrink-0" />
-                  <span className="text-balance">Custom Modifications</span>
+            <Card className="shadow-md border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileEdit className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span>Custom Modifications</span>
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm lg:text-base text-pretty">
+                <CardDescription className="text-sm sm:text-base text-blue-700/80">
                   Add your own specific modifications to the contract
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 max-h-80 sm:max-h-96 overflow-y-auto">
+              <CardContent className="space-y-4 max-h-96 overflow-y-auto p-4 sm:p-6">
                 {customModifications.map((modification, index) => (
-                  <div key={index} className="flex flex-col space-y-2 sm:space-y-3">
+                  <div key={index} className="space-y-3 p-4 border border-gray-200 rounded-lg bg-gray-50/30">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor={`modification-${index}`} className="text-xs sm:text-sm lg:text-base font-medium">
+                      <Label htmlFor={`modification-${index}`} className="text-sm font-semibold text-gray-700">
                         Modification {index + 1}
                       </Label>
                       {customModifications.length > 1 && (
@@ -402,9 +420,9 @@ export function ContractModificationPage({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeCustomModification(index)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 w-6 p-0"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 rounded-full"
                         >
-                          <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -413,7 +431,7 @@ export function ContractModificationPage({
                       placeholder="Describe the specific modification you want to make..."
                       value={modification}
                       onChange={(e) => updateCustomModification(index, e.target.value)}
-                      className="text-xs sm:text-sm lg:text-base"
+                      className="text-sm resize-none focus:ring-2 focus:ring-blue-500 border-gray-300"
                       rows={3}
                     />
                   </div>
@@ -422,9 +440,9 @@ export function ContractModificationPage({
                 <Button
                   variant="outline"
                   onClick={addCustomModification}
-                  className="w-full border-dashed border-2 py-2 sm:py-3 lg:py-4 text-xs sm:text-sm lg:text-base bg-transparent"
+                  className="w-full border-2 border-dashed border-gray-300 py-4 text-sm bg-transparent hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
                 >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Another Modification
                 </Button>
               </CardContent>
@@ -432,61 +450,51 @@ export function ContractModificationPage({
 
             {/* Modification Result */}
             {modificationResult && (
-              <Card className="bg-green-50 border-green-200 shadow-sm">
-                <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl xl:text-2xl text-green-800">
-                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 flex-shrink-0" />
-                    <span className="text-balance">Modification Complete</span>
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-3 text-lg sm:text-xl text-green-800">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span>Modification Complete</span>
                   </CardTitle>
-                  <CardDescription className="text-green-700 text-xs sm:text-sm lg:text-base">
-                    Your contract has been successfully modified (Version {modificationResult.version})
+                  <CardDescription className="text-green-700 text-sm sm:text-base">
+                    Your contract has been successfully modified 
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4">
                     <div>
-                      <Label className="text-xs sm:text-sm lg:text-base font-medium text-green-800">
+                      <Label className="text-sm font-semibold text-green-800 block mb-3">
                         Applied Modifications:
                       </Label>
-                      <ul className="mt-2 sm:mt-3 space-y-1 sm:space-y-2 max-h-24 sm:max-h-32 overflow-y-auto">
-                        {modificationResult.modifications.map((mod, index) => (
-                          <li
-                            key={index}
-                            className="text-xs sm:text-sm lg:text-base text-green-700 flex items-start gap-1 sm:gap-2"
-                          >
-                            <Check className="h-3 w-3 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
-                            <span className="text-pretty leading-relaxed">{mod}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="max-h-32 overflow-y-auto bg-white/50 rounded-lg p-3 border border-green-200">
+                        <ul className="space-y-2">
+                          {modificationResult.modifications.map((mod, index) => (
+                            <li
+                              key={index}
+                              className="text-sm text-green-700 flex items-start gap-2 leading-relaxed"
+                            >
+                              <Check className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
+                              <span>{mod}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-green-200">
                       <Button
                         onClick={() => handleDownload(modificationResult.version)}
                         disabled={isDownloading}
-                        className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm lg:text-base"
-                        size="sm"
+                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
                       >
                         {isDownloading ? (
-                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
-                          <Download className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2" />
+                          <Download className="h-4 w-4 mr-2" />
                         )}
-                        <span className="hidden sm:inline">Download Modified Contract</span>
-                        <span className="sm:hidden">Download Modified</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        onClick={() => handleDownload("original")}
-                        disabled={isDownloading}
-                        size="sm"
-                        className="text-xs sm:text-sm lg:text-base"
-                      >
-                        <FileText className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2" />
-                        <span className="hidden sm:inline">Download Original</span>
-                        <span className="sm:hidden">Original</span>
+                        Download Modified Contract
                       </Button>
                     </div>
                   </div>
@@ -495,52 +503,52 @@ export function ContractModificationPage({
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-4 sm:pt-6">
+            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-gray-200">
               <Button
                 variant="outline"
                 onClick={onBack}
-                size="sm"
-                className="text-xs sm:text-sm lg:text-base bg-transparent"
+                className="bg-transparent hover:bg-gray-100"
               >
-                <span className="hidden sm:inline">Back to Analysis</span>
-                <span className="sm:hidden">Back</span>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Analysis
               </Button>
 
               <Button
                 onClick={handleModifyContract}
                 disabled={isModifying}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm lg:text-base"
-                size="sm"
+                className="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white shadow-md"
               >
                 {isModifying ? (
-                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
-                  <Crown className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2" />
+                  <Crown className="h-4 w-4 mr-2" />
                 )}
                 Apply Modifications
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="recommendations" className="mt-0 space-y-4 sm:space-y-6 lg:space-y-8">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl xl:text-2xl">
-                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-600 flex-shrink-0" />
-                  <span className="text-balance">Generate Custom Recommendations</span>
+          <TabsContent value="recommendations" className="mt-0 space-y-6">
+            <Card className="shadow-md border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Plus className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span>Generate Custom Recommendations</span>
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm lg:text-base text-pretty">
+                <CardDescription className="text-sm sm:text-base text-blue-700/80">
                   Select focus areas to generate tailored recommendations for your contract
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+              <CardContent className="space-y-6 p-4 sm:p-6">
                 <div>
-                  <Label className="text-xs sm:text-sm lg:text-base font-medium mb-3 sm:mb-4 block">Focus Areas</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 max-h-48 sm:max-h-64 overflow-y-auto">
+                  <Label className="text-sm font-semibold mb-4 block text-gray-700">Focus Areas</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-3 bg-gray-50/50 rounded-lg border border-gray-200">
                     {predefinedFocusAreas.map((area) => (
                       <div
                         key={area}
-                        className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border rounded-lg hover:bg-gray-50"
+                        className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-200"
                       >
                         <Checkbox
                           id={`focus-${area}`}
@@ -550,7 +558,7 @@ export function ContractModificationPage({
                         />
                         <Label
                           htmlFor={`focus-${area}`}
-                          className="text-xs sm:text-sm lg:text-base capitalize cursor-pointer text-pretty leading-relaxed"
+                          className="text-sm capitalize cursor-pointer leading-relaxed"
                         >
                           {area}
                         </Label>
@@ -559,36 +567,38 @@ export function ContractModificationPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Input
                     placeholder="Add custom focus area..."
                     value={customFocusArea}
                     onChange={(e) => setCustomFocusArea(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addCustomFocusArea()}
-                    className="flex-1 text-xs sm:text-sm lg:text-base"
+                    className="flex-1 text-sm focus:ring-2 focus:ring-blue-500"
                   />
                   <Button
                     onClick={addCustomFocusArea}
                     variant="outline"
-                    size="sm"
-                    className="flex-shrink-0 bg-transparent"
+                    className="flex-shrink-0 bg-transparent hover:bg-blue-50"
                   >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
 
                 {focusAreas.length > 0 && (
                   <div>
-                    <Label className="text-xs sm:text-sm lg:text-base font-medium">Selected Focus Areas:</Label>
-                    <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3 max-h-24 sm:max-h-32 overflow-y-auto">
+                    <Label className="text-sm font-semibold block mb-3 text-gray-700">Selected Focus Areas:</Label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 bg-blue-50/50 rounded-lg border border-blue-200">
                       {focusAreas.map((area) => (
                         <Badge
                           key={area}
                           variant="secondary"
-                          className="capitalize text-xs px-2 py-1 flex items-center gap-1"
+                          className="capitalize text-xs px-3 py-1.5 flex items-center gap-2 bg-blue-100 text-blue-700 border border-blue-200"
                         >
-                          <span className="truncate max-w-[120px] sm:max-w-none">{area}</span>
-                          <X className="h-3 w-3 cursor-pointer flex-shrink-0" onClick={() => toggleFocusArea(area)} />
+                          <span className="max-w-[120px] truncate">{area}</span>
+                          <X 
+                            className="h-3 w-3 cursor-pointer hover:text-red-500 transition-colors" 
+                            onClick={() => toggleFocusArea(area)} 
+                          />
                         </Badge>
                       ))}
                     </div>
@@ -598,13 +608,12 @@ export function ContractModificationPage({
                 <Button
                   onClick={generateCustomRecommendations}
                   disabled={isGeneratingRecommendations || focusAreas.length === 0}
-                  className="w-full text-xs sm:text-sm lg:text-base"
-                  size="sm"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md py-3"
                 >
                   {isGeneratingRecommendations ? (
-                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-2" />
+                    <Plus className="h-4 w-4 mr-2" />
                   )}
                   Generate Custom Recommendations
                 </Button>
@@ -612,9 +621,9 @@ export function ContractModificationPage({
             </Card>
 
             {customRecommendations.length > 0 && (
-              <Alert className="bg-green-50 border-green-200">
-                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 text-green-600" />
-                <AlertDescription className="text-green-800 text-xs sm:text-sm lg:text-base text-pretty leading-relaxed">
+              <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-md">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800 text-sm sm:text-base leading-relaxed">
                   Generated {customRecommendations.length} custom recommendations! Switch to "Modify" tab to apply them.
                 </AlertDescription>
               </Alert>
@@ -622,40 +631,41 @@ export function ContractModificationPage({
           </TabsContent>
 
           <TabsContent value="history" className="mt-0">
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl xl:text-2xl">
-                  <History className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-purple-600 flex-shrink-0" />
-                  <span className="text-balance">Modification History</span>
+            <Card className="shadow-md border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-t-lg">
+                <CardTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <History className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span>Modification History</span>
                 </CardTitle>
-                <CardDescription className="text-xs sm:text-sm lg:text-base text-pretty">
+                <CardDescription className="text-sm sm:text-base text-purple-700/80">
                   View all versions and modifications made to this contract
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 {isLoadingHistory ? (
-                  <div className="flex items-center justify-center py-8 sm:py-12">
-                    <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 animate-spin mr-2 sm:mr-3" />
-                    <span className="text-xs sm:text-sm lg:text-base">Loading history...</span>
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mr-3 text-purple-600" />
+                    <span className="text-sm text-purple-700">Loading history...</span>
                   </div>
                 ) : modificationHistory.length > 0 ? (
-                  <div className="space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
                     {/* Original version */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 lg:p-6 border rounded-lg bg-blue-50 border-blue-200 gap-3 sm:gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-blue-800 text-sm sm:text-base lg:text-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-2 border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-blue-800 text-base sm:text-lg mb-1">
                           Version 1 (Original)
                         </div>
-                        <div className="text-blue-600 text-xs sm:text-sm lg:text-base">Initial contract upload</div>
+                        <div className="text-blue-600 text-sm">Initial contract upload</div>
                       </div>
                       <Button
                         variant="outline"
                         onClick={() => handleDownload("original")}
                         disabled={isDownloading}
-                        size="sm"
-                        className="border-blue-300 text-blue-700 hover:bg-blue-100 text-xs sm:text-sm lg:text-base flex-shrink-0"
+                        className="flex-shrink-0 border-blue-300 text-blue-700 hover:bg-blue-100"
                       >
-                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                        <Download className="h-4 w-4 mr-2" />
                         Download
                       </Button>
                     </div>
@@ -664,36 +674,36 @@ export function ContractModificationPage({
                     {modificationHistory.map((history, index) => (
                       <div
                         key={index}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 lg:p-6 border rounded-lg hover:bg-gray-50 transition-colors gap-3 sm:gap-4"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 gap-3"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm sm:text-base lg:text-lg">Version {history.version}</div>
-                          <div className="text-gray-600 mt-1 text-xs sm:text-sm lg:text-base text-pretty leading-relaxed">
-                            Modified by {history.modifiedBy} on {formatDate(history.modifiedAt)}
+                          <div className="font-semibold text-gray-800 text-base sm:text-lg mb-1">
+                            Version {history.version}
                           </div>
-                          <div className="text-gray-500 mt-1 sm:mt-2 text-xs sm:text-sm lg:text-base text-pretty leading-relaxed">
-                            Changes: {history.changes}
+                          <div className="text-gray-600 text-sm mb-2">
+                            Modified by {history.modifiedBy} on {formatDate(history.modifiedAt)}
                           </div>
                         </div>
                         <Button
                           variant="outline"
                           onClick={() => handleDownload(history.version)}
                           disabled={isDownloading}
-                          size="sm"
-                          className="text-xs sm:text-sm lg:text-base flex-shrink-0"
+                          className="flex-shrink-0 hover:bg-gray-100"
                         >
-                          <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 sm:py-12 text-gray-500">
-                    <History className="h-8 w-8 sm:h-12 sm:w-12 lg:h-16 lg:w-16 mx-auto mb-3 sm:mb-4 opacity-50" />
-                    <p className="text-sm sm:text-base lg:text-lg mb-1 sm:mb-2">No modifications made yet</p>
-                    <p className="text-xs sm:text-sm lg:text-base text-pretty leading-relaxed">
-                      Switch to "Modify" tab to create your first modification
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="mb-4">
+                      <History className="h-16 w-16 mx-auto opacity-30" />
+                    </div>
+                    <p className="text-lg font-medium mb-2">No modifications made yet</p>
+                    <p className="text-sm leading-relaxed max-w-sm mx-auto">
+                      Switch to "Modify" tab to create your first modification and start building your contract history
                     </p>
                   </div>
                 )}

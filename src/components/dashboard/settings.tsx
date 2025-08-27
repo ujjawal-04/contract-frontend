@@ -180,7 +180,7 @@ export default function GlobalSettings() {
     premium: [
       "Advanced contract analysis",
       "Unlimited projects",
-      "Basic AI chat (50 messages)",
+      "Basic AI chat (15 messages)",
       "10+ opportunities with impact levels",
       "Comprehensive contract summary",
       "Improvement recommendations",

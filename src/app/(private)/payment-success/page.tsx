@@ -1,14 +1,16 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { useSubscription } from "@/hooks/use-subscription"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { UploadModal } from "@/components/modals/upload-modal"
 
-export default function PaymentSuccess() {
+// Component that uses useSearchParams - must be wrapped in Suspense
+function PaymentSuccessContent() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const searchParams = useSearchParams()
   const plan = searchParams.get("plan")
@@ -91,5 +93,45 @@ export default function PaymentSuccess() {
         onUploadComplete={() => setIsUploadModalOpen(false)}
       />
     </>
+  )
+}
+
+// Loading fallback component
+function PaymentSuccessLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="flex items-center justify-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <CardTitle className="text-2xl font-bold text-gray-700">Processing...</CardTitle>
+          </div>
+          <CardDescription>
+            Confirming your payment details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="bg-gray-100 animate-pulse h-4 rounded"></div>
+            <div className="bg-gray-100 animate-pulse h-20 rounded"></div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className="flex flex-col w-full space-y-2">
+            <div className="bg-gray-200 animate-pulse h-10 rounded"></div>
+            <div className="bg-gray-100 animate-pulse h-10 rounded"></div>
+          </div>
+        </CardFooter>
+      </Card>
+    </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={<PaymentSuccessLoading />}>
+      <PaymentSuccessContent />
+    </Suspense>
   )
 }

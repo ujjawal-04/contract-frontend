@@ -17,7 +17,7 @@ import { useState, useRef, useEffect, MouseEvent, KeyboardEvent } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, Variants } from "framer-motion"
 import { PricingSection } from "./pricing-section"
 
 // Features array with title, description and icon name
@@ -156,7 +156,7 @@ export function HeroSection() {
   const demoVideoSrc: string = "https://www.youtube.com/embed/t54NhLD1QPQ" // Replace with your actual video URL
   
   // Animation variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -167,7 +167,7 @@ export function HeroSection() {
     },
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
@@ -176,17 +176,17 @@ export function HeroSection() {
     },
   }
 
-  const animButtonVariants = {
+  const animButtonVariants: Variants = {
     hover: { scale: 1.05, transition: { duration: 0.2 } },
   }
 
-  // Grid background animation - moved from feature section to be used in header
-  const gridVariants = {
+  // Grid background animation - fixed ease property
+  const gridVariants: Variants = {
     animate: {
       backgroundPosition: ["0px 0px", "100px 100px"],
       transition: {
         duration: 20,
-        ease: "linear",
+        ease: "linear", // This is actually fine for backgroundPosition animations
         repeat: Number.POSITIVE_INFINITY,
       },
     },
@@ -203,11 +203,17 @@ export function HeroSection() {
       
       {/* Hero Section with Animated Grid Background */}
       <section className="w-full min-h-screen flex items-center justify-center py-12 md:py-16 lg:py-20 relative">
-        {/* Added grid background here */}
+        {/* Fixed grid background animation */}
         <motion.div
           className="absolute inset-0 z-0 opacity-10"
-          variants={gridVariants}
-          animate="animate"
+          animate={{
+            backgroundPosition: ["0px 0px", "100px 100px"],
+          }}
+          transition={{
+            duration: 20,
+            ease: "linear",
+            repeat: Number.POSITIVE_INFINITY,
+          }}
           style={{
             backgroundImage:
               "linear-gradient(to right, #4f46e5 1px, transparent 1px), linear-gradient(to bottom, #4f46e5 1px, transparent 1px)",

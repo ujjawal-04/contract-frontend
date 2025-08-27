@@ -186,22 +186,21 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
 
   // Initialize chat with welcome message
   const initializeChat = async () => {
-    // Set welcome message immediately
-    setChatHistory([
-      {
-        type: "ai",
-        message: "👑 **Welcome to Gold AI Assistant!**\n\nI can help you analyze, modify, and understand your contract in detail. I have access to your complete contract and can provide:\n\n• **Advanced Risk Analysis** - Deep dive into potential issues\n• **Contract Modifications** - Suggest specific improvements\n• **Clause Analysis** - Detailed examination of terms\n• **Legal Insights** - Professional recommendations\n• **Custom Recommendations** - Tailored to your needs\n\nWhat would you like to explore about your contract?",
-        recommendations: [
-          "Analyze key risks",
-          "Suggest modifications", 
-          "Review payment terms",
-          "Check compliance issues",
-          "Compare to industry standards"
-        ],
-        timestamp: new Date()
-      }
-    ]);
-  };
+  setChatHistory([
+    {
+      type: "ai",
+      message: "Hi! I'm your Gold AI assistant. I can analyze your contract, suggest improvements, and answer any questions you have about the terms and conditions. What would you like to know?",
+      recommendations: [
+        "Analyze key risks",
+        "Review payment terms",
+        "Check important clauses",
+        "Suggest improvements",
+        "Explain confusing terms"
+      ],
+      timestamp: new Date()
+    }
+  ]);
+};
 
   const handleSendMessage = async (customMessage?: string) => {
     const inputMessage = customMessage || message;
@@ -324,14 +323,14 @@ export function GoldChatModal({ open, onClose, contractId }: GoldChatModalProps)
         }}
       >
         <DialogHeader className="p-4 border-b bg-gradient-to-r from-yellow-50 to-amber-50">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center ">
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
               <Crown className="h-5 w-5 text-yellow-600" />
               <span className="bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">
                 Gold AI Assistant
               </span>
             </DialogTitle>
-            <div className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
+            <div className="ml-4 flex text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
               Unlimited Messages
             </div>
           </div>
